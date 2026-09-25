@@ -1,39 +1,30 @@
-import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { VistaListaEventos } from './pages/VistaListaEventos';
+import { VistaDetalleEvento } from './pages/VistaDetalleEvento';
+import { FormularioEvento } from './components/FormularioEvento';
 
-function App() {
-  const [count, setCount] = useState(0)
-  const [apiStatus, setApiStatus] = useState('Conectando...')
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/health`)
-      .then((res) => res.json())
-      .then((data) => setApiStatus(JSON.stringify(data)))
-      .catch((err) => setApiStatus('Error: ' + err.message))
-  }, [])
-
+export function App() {
   return (
-    <>
-      <div>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+    <Router>
+      <header>
+        <h1>Gestión de Eventos y Logística</h1>
+        <nav>
+          <Link to="/">Lista de eventos</Link>
+          <Link to="/eventos/nuevo" className="btn btn-primary">+ Crear evento</Link>
+        </nav>
+      </header>
 
-      <div style={{ margin: '1rem', padding: '1rem', border: '1px solid gray' }}>
-        <h2>Estado del Backend:</h2>
-        <p>{apiStatus}</p>
-      </div>
-
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
-    </>
-  )
+      <main>
+        <Routes>
+          <Route path="/" element={<VistaListaEventos />} />
+          <Route path="/eventos/nuevo" element={<FormularioEvento isEdit={false} />} />
+          <Route path="/eventos/editar/:id" element={<FormularioEvento isEdit={true} />} />
+          <Route path="/eventos/:id" element={<VistaDetalleEvento />} />
+        </Routes>
+      </main>
+    </Router>
+  );
 }
 
-export default App
+export default App;
