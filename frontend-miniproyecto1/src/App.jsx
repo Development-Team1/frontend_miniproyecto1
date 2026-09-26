@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
+import EventForm from './components/EventForm'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -32,6 +33,7 @@ function App() {
           count is {count}
         </button>
       </div>
+      <EventForm />
     </>
   )
 }
