@@ -9,7 +9,7 @@ const TIPOS_EVENTO = ["Boda", "Cumpleaños", "Corporativo", "Social", "Otro"];
 
 const tareaVacia = () => ({ nombre: "", plazo: "", horas_estimadas: "" });
 
-export default function EventForm() {
+export default function EventForm({ onEventoCreado }) {
   const [evento, setEvento] = useState({ nombre: "", tipo: "", fecha: "" });
   const [tareas, setTareas] = useState([tareaVacia()]);
   const [errores, setErrores] = useState({});
@@ -87,7 +87,7 @@ export default function EventForm() {
     setEstado("loading");
 
     try {
-      const respuesta = await fetch(`${API_URL}/events/`, {
+      const respuesta = await fetch(`${API_URL}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,9 +112,12 @@ export default function EventForm() {
         throw new Error(detalle);
       }
 
+      const eventoCreado = await respuesta.json();
+
       setEstado("success");
       setMensajeServidor("¡Evento creado con éxito! Ya puedes verlo en tu lista de eventos.");
       resetFormulario();
+      onEventoCreado?.(eventoCreado);
     } catch (err) {
       setEstado("error");
       setMensajeServidor(

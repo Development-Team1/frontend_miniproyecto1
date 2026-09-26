@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
 import EventForm from './components/EventForm'
+import EventList from './components/EventList'
+import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
   const [apiStatus, setApiStatus] = useState('Conectando...')
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/health`)
@@ -16,24 +16,13 @@ function App() {
 
   return (
     <>
-      <div>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-
       <div style={{ margin: '1rem', padding: '1rem', border: '1px solid gray' }}>
         <h2>Estado del Backend:</h2>
         <p>{apiStatus}</p>
       </div>
 
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 2)}>
-          count is {count}
-        </button>
-      </div>
-      <EventForm />
+      <EventForm onEventoCreado={() => setRefreshTrigger((n) => n + 1)} />
+      <EventList refreshTrigger={refreshTrigger} />
     </>
   )
 }
