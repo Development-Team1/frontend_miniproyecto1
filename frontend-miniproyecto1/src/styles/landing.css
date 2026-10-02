@@ -1,0 +1,92 @@
+.landing { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.5rem); overflow-x: clip; }
+
+.landing__barra { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.4rem 0; }
+.landing__acciones { display: flex; align-items: center; gap: 0.5rem; }
+
+/* ---------- Hero ---------- */
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(2rem, 5vw, 4.5rem); align-items: center;
+  padding: clamp(2rem, 6vw, 4.5rem) 0 clamp(3rem, 8vw, 6rem);
+}
+.hero__texto { display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+.hero h1 { font-size: clamp(2.7rem, 6.2vw, 4.7rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; max-width: 11em; }
+.hero__bajada { font-size: 1.2rem; color: var(--niebla); max-width: 34rem; }
+.hero__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.hero__nota { font-size: 0.95rem; color: var(--niebla); }
+
+/* ---------- Hilo de ejemplo (momento animado de la página) ---------- */
+.hilo { margin: 0; display: flex; flex-direction: column; gap: 1rem; }
+.hilo figcaption { font-size: 0.875rem; color: var(--niebla); text-align: center; }
+.hilo__escena { position: relative; width: 100%; max-width: 470px; margin: 0 auto; aspect-ratio: 4 / 5; }
+.hilo__fondo {
+  position: absolute; inset: 4% -5% 2% -3%;
+  background: var(--grafito); border-radius: var(--blob-a); transform: rotate(-4deg);
+}
+.hilo__trazo { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.hilo__camino, .hilo__luz { fill: none; stroke-linecap: round; }
+.hilo__camino { stroke: var(--trazo); stroke-width: 3; stroke-dasharray: 1 0.025; }
+.hilo__luz { stroke: var(--azul); stroke-width: 4; stroke-dasharray: 1; stroke-dashoffset: 1; animation: trazar 2.4s 0.3s cubic-bezier(0.45, 0, 0.2, 1) forwards; }
+@keyframes trazar { to { stroke-dashoffset: 0; } }
+
+.hilo__nodo { position: absolute; width: 0; height: 0; }
+.hilo__punto {
+  position: absolute; left: -0.6rem; top: -0.6rem; width: 1.2rem; height: 1.2rem;
+  background: var(--azul); border-radius: var(--blob-b); box-shadow: 0 0 0 5px var(--grafito);
+  opacity: 0; animation: surgir 0.45s calc(0.3s + var(--i) * 0.72s) ease-out forwards;
+}
+.hilo__nodo--final .hilo__punto { width: 1.7rem; height: 1.7rem; left: -0.85rem; top: -0.85rem; background: var(--azul-claro); }
+.hilo__etiqueta {
+  position: absolute; top: 0; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 0.1rem; width: 11.5rem;
+  padding: 0.65rem 0.95rem; background: var(--pizarra); border-radius: 14px 22px 16px 22px;
+  opacity: 0; animation: surgir 0.45s calc(0.4s + var(--i) * 0.72s) ease-out forwards;
+}
+.hilo__nodo--der .hilo__etiqueta { left: 1.4rem; }
+.hilo__nodo--izq .hilo__etiqueta { right: 1.4rem; border-radius: 22px 14px 22px 16px; }
+.hilo__nodo--final .hilo__etiqueta { background: var(--azul-hondo); }
+.hilo__etiqueta strong { font: 700 0.95rem/1.2 var(--display); }
+.hilo__etiqueta small { font-size: 0.8rem; color: var(--niebla); line-height: 1.3; }
+.hilo__nodo--final .hilo__etiqueta small { color: var(--azul-claro); }
+@keyframes surgir { from { opacity: 0; transform: translateY(-50%) scale(0.92); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
+.hilo__punto { animation-name: surgir-punto; }
+@keyframes surgir-punto { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+
+/* ---------- Pasos ---------- */
+.pasos { padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(3rem, 7vw, 5.5rem); }
+.pasos h2, .privado h2 { font-size: clamp(1.9rem, 4vw, 2.75rem); font-weight: 700; }
+.pasos__lista { list-style: none; margin: 2.5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem clamp(1.5rem, 4vw, 3.5rem); }
+.paso { display: flex; flex-direction: column; gap: 0.6rem; }
+.paso:nth-child(2) { margin-top: 3rem; }
+.paso:nth-child(3) { margin-top: 1.5rem; }
+.paso__numero {
+  display: grid; place-items: center; width: 3.4rem; height: 3.4rem; margin-bottom: 0.4rem;
+  font: 800 1.4rem var(--display); color: var(--azul-claro); background: var(--azul-hondo); border-radius: var(--blob-a);
+}
+.paso:nth-child(2) .paso__numero { border-radius: var(--blob-b); }
+.paso:nth-child(3) .paso__numero { border-radius: var(--blob-c); }
+.paso h3 { font-size: 1.4rem; font-weight: 700; }
+.paso p { color: var(--niebla); max-width: 22rem; }
+
+/* ---------- Privacidad ---------- */
+.privado {
+  display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+  padding: clamp(2rem, 5vw, 3.5rem); margin-bottom: 3rem;
+  background: var(--grafito); border-radius: 56px 140px 64px 110px / 64px 90px 70px 80px;
+}
+.privado > div { display: flex; flex-direction: column; gap: 0.8rem; max-width: 36rem; }
+.privado p { color: var(--niebla); }
+
+.landing__pie { padding: 1.5rem 0 2.5rem; color: var(--niebla); font-size: 0.9rem; }
+
+@media (max-width: 480px) {
+  .hilo__etiqueta { width: 9.6rem; padding: 0.55rem 0.8rem; }
+  .hilo__etiqueta strong { font-size: 0.88rem; }
+}
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .pasos__lista { grid-template-columns: minmax(0, 1fr); }
+  .paso:nth-child(n) { margin-top: 0; }
+  .logo__texto span { display: none; }
+}

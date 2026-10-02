@@ -1,0 +1,137 @@
+:root {
+  --noche: #1a1e25;
+  --grafito: #232932;
+  --pizarra: #2d3541;
+  --trazo: #3b4553;
+  --hielo: #e8edf4;
+  --niebla: #9aa6b8;
+  --azul: #5a9bff;
+  --azul-claro: #a9c9ff;
+  --azul-hondo: #24407a;
+  --coral: #ff9d8f;
+  --menta: #7fdcc0;
+
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --texto: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
+
+  --blob-a: 62% 38% 54% 46% / 48% 56% 44% 52%;
+  --blob-b: 44% 56% 38% 62% / 58% 42% 58% 42%;
+  --blob-c: 54% 46% 63% 37% / 40% 55% 45% 60%;
+  --forma-boton: 16px 22px 18px 24px;
+
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--noche); scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font: 400 1.0625rem/1.55 var(--texto);
+  color: var(--hielo);
+  background: var(--noche);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.08; letter-spacing: -0.015em; }
+
+a { color: var(--azul-claro); text-underline-offset: 3px; }
+a:hover { color: var(--hielo); }
+
+:focus-visible { outline: 3px solid var(--azul-claro); outline-offset: 3px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font: 700 1rem/1 var(--texto);
+  padding: 0.95rem 1.45rem;
+  border: 1.5px solid transparent;
+  border-radius: var(--forma-boton);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { cursor: progress; opacity: 0.7; }
+.btn--primario { background: var(--azul); color: #0d1522; }
+.btn--primario:hover { background: var(--azul-claro); color: #0d1522; }
+.btn--suave { background: var(--pizarra); color: var(--hielo); border-color: var(--trazo); }
+.btn--suave:hover { background: var(--trazo); color: var(--hielo); }
+.btn--texto { background: transparent; color: var(--hielo); padding-inline: 1rem; }
+.btn--texto:hover { background: var(--pizarra); color: var(--hielo); }
+.btn--peligro { background: transparent; color: var(--coral); border-color: rgba(255, 157, 143, 0.45); }
+.btn--peligro:hover { background: rgba(255, 157, 143, 0.12); color: var(--coral); }
+.btn--peligro-solido { background: var(--coral); color: #2a0f0b; }
+.btn--peligro-solido:hover { background: #ffb5aa; color: #2a0f0b; }
+.btn--chico { padding: 0.65rem 1rem; font-size: 0.95rem; }
+
+/* ---------- Logo ---------- */
+.logo { display: inline-flex; align-items: center; gap: 0.7rem; color: var(--hielo); text-decoration: none; }
+.logo__marca { width: 2.4rem; height: 2.4rem; color: var(--azul); flex: none; }
+.logo__texto { display: flex; flex-direction: column; line-height: 1.15; }
+.logo__texto strong { font: 700 1.05rem/1.15 var(--display); }
+.logo__texto span { font-size: 0.8rem; color: var(--niebla); }
+
+/* ---------- Campos de formulario ---------- */
+.campo { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.campo > label, .campo > legend { font-weight: 600; font-size: 0.95rem; padding: 0; }
+.campo__ayuda { font-size: 0.875rem; color: var(--niebla); }
+.campo__error { font-size: 0.875rem; color: var(--coral); font-weight: 500; }
+
+.entrada {
+  width: 100%;
+  font: 400 1rem/1.4 var(--texto);
+  color: var(--hielo);
+  background: var(--grafito);
+  border: 1.5px solid var(--trazo);
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.entrada::placeholder { color: #75819a; }
+.entrada:hover { border-color: #51607a; }
+.entrada:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(90, 155, 255, 0.35); }
+.entrada[aria-invalid='true'] { border-color: var(--coral); }
+input[type='date'].entrada { min-height: 3.05rem; }
+
+.entrada-con-boton { position: relative; }
+.entrada-con-boton .entrada { padding-right: 5.5rem; }
+.entrada-con-boton button {
+  position: absolute; top: 50%; right: 0.5rem; transform: translateY(-50%);
+  font: 600 0.875rem var(--texto); color: var(--azul-claro);
+  background: transparent; border: 0; padding: 0.45rem 0.7rem; border-radius: 10px; cursor: pointer;
+}
+.entrada-con-boton button:hover { background: var(--pizarra); }
+
+/* ---------- Mensajes ---------- */
+.alerta {
+  padding: 0.85rem 1rem; border-radius: 16px 20px 16px 20px;
+  font-size: 0.975rem; border: 1px solid;
+}
+.alerta--error { background: rgba(255, 157, 143, 0.1); border-color: rgba(255, 157, 143, 0.45); color: #ffd3cc; }
+.alerta--info { background: rgba(90, 155, 255, 0.1); border-color: rgba(90, 155, 255, 0.4); color: var(--azul-claro); }
+
+.aviso-toast {
+  position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+  z-index: 50; max-width: calc(100% - 2rem);
+  background: var(--hielo); color: var(--noche);
+  font-weight: 600; padding: 0.8rem 1.3rem; border-radius: 18px 24px 18px 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  animation: aparecer 0.25s ease-out;
+}
+@keyframes aparecer { from { opacity: 0; transform: translate(-50%, 10px); } }
+
+.pantalla-carga { min-height: 100svh; display: grid; place-items: center; color: var(--niebla); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+}
