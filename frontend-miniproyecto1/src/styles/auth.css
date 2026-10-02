@@ -1,0 +1,30 @@
+.auth { min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); }
+.auth__principal { display: flex; flex-direction: column; padding: 1.4rem clamp(1.1rem, 5vw, 4rem) 2rem; }
+.auth__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.auth__volver { font-size: 0.95rem; }
+
+.auth__formulario { width: 100%; max-width: 25rem; margin: auto; padding: 2.5rem 0; display: flex; flex-direction: column; gap: 1.1rem; }
+.auth__formulario h1 { font-size: clamp(2rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.025em; }
+.auth__bajada { color: var(--niebla); margin-bottom: 0.4rem; }
+.auth__formulario form { display: flex; flex-direction: column; gap: 1.2rem; }
+.auth__enviar { width: 100%; margin-top: 0.3rem; }
+.auth__cambio { color: var(--niebla); }
+
+.auth__lado {
+  position: relative; overflow: hidden; display: flex; align-items: flex-end;
+  padding: clamp(2rem, 5vw, 4rem); background: var(--grafito);
+}
+.auth__mancha {
+  position: absolute; width: 130%; aspect-ratio: 1; left: -20%; top: -28%;
+  background: var(--azul-hondo); border-radius: var(--blob-a); transform: rotate(18deg);
+}
+.auth__mancha::after {
+  content: ''; position: absolute; width: 38%; aspect-ratio: 1; right: 12%; bottom: 10%;
+  background: var(--azul); border-radius: var(--blob-c);
+}
+.auth__lado p { position: relative; font: 700 clamp(1.7rem, 3vw, 2.5rem)/1.1 var(--display); letter-spacing: -0.02em; max-width: 14em; }
+
+@media (max-width: 860px) {
+  .auth { grid-template-columns: minmax(0, 1fr); }
+  .auth__lado { display: none; }
+}
