@@ -1,16 +1,36 @@
-# React + Vite
+# Mini-proyecto 1 · Administrador de eventos (frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite, desplegado en Vercel. Habla con la API FastAPI (Render) mediante `VITE_API_URL`.
 
-Currently, two official plugins are available:
+## Rutas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Ruta | Acceso | Qué muestra |
+| --- | --- | --- |
+| `/` | pública | Página de inicio |
+| `/registro` | pública | Crear cuenta |
+| `/ingresar` | pública | Iniciar sesión |
+| `/eventos` | solo con sesión | Crear, editar y eliminar eventos propios |
+| `/hoy` | solo con sesión | Gestiones vencidas, para hoy y próximas, con filtros |
 
-## React Compiler
+`vercel.json` redirige todas las rutas a `index.html` para que funcione la navegación directa.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Vista «Hoy»: regla de prioridad
 
-## Expanding the Oxlint configuration
+La misma regla aparece en la interfaz bajo «¿Cómo se ordena esto?» y vive en `src/lib/hoy.js`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+1. Los grupos van en este orden: **Gestiones vencidas**, **Para hoy** y **Próximas**.
+2. Dentro de cada grupo se ordena por plazo, de menor a mayor: en Vencidas la más antigua queda arriba y en Próximas la más cercana.
+3. Si dos gestiones tienen la misma fecha, va primero la de **menor esfuerzo** (menos horas estimadas).
+4. Si aún empatan, se ordenan por nombre y, al final, por id.
+
+El grupo depende solo del plazo frente a la fecha de hoy. «Próximas» incluye todas las que vencen después de hoy.
+Se puede filtrar por evento y por estado (vencida, para hoy, próxima) sin alterar el orden.
+
+## Desarrollo
+
+```bash
+npm install
+npm run dev
+```
+
+Variable de entorno: `VITE_API_URL` (ya está en `.env`).
