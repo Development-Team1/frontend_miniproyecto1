@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
+import { fechaCorta } from '../lib/fechas'
 
 const TIPOS = ['Boda', 'Cumpleaños', 'Corporativo', 'Social', 'Otro']
 
@@ -36,7 +37,12 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
 
   const cambiarDato = (campo, valor) => {
     setDatos((p) => ({ ...p, [campo]: valor }))
-    setErrores((p) => ({ ...p, [campo]: undefined }))
+    setErrores((p) => {
+      const siguiente = { ...p, [campo]: undefined }
+      // Al cambiar la fecha del evento se vuelven a evaluar los plazos al guardar
+      if (campo === 'fecha') Object.keys(siguiente).forEach((k) => k.startsWith('plazo-') && (siguiente[k] = undefined))
+      return siguiente
+    })
   }
   const cambiarGestion = (uid, campo, valor) => {
     setGestiones((p) => p.map((g) => (g.uid === uid ? { ...g, [campo]: valor } : g)))
@@ -51,6 +57,8 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
     gestiones.forEach((g) => {
       if (!g.nombre.trim()) e[`nombre-${g.uid}`] = 'Describe qué hay que hacer, por ejemplo «Reservar el salón».'
       if (!g.plazo) e[`plazo-${g.uid}`] = 'Elige hasta cuándo debe estar lista.'
+      else if (datos.fecha && g.plazo > datos.fecha)
+        e[`plazo-${g.uid}`] = `El plazo no puede ser posterior a la fecha del evento (${fechaCorta(datos.fecha)}).`
       if (g.horas === '' || !(Number(g.horas) > 0)) e[`horas-${g.uid}`] = 'Escribe las horas estimadas (más de 0).'
     })
     return e
@@ -170,7 +178,7 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
                   <div className="campo">
                     <label htmlFor={`g-plazo-${g.uid}`}>Plazo</label>
                     <input
-                      id={`g-plazo-${g.uid}`} className="entrada" type="date"
+                      id={`g-plazo-${g.uid}`} className="entrada" type="date" max={datos.fecha || undefined}
                       value={g.plazo} onChange={(e) => cambiarGestion(g.uid, 'plazo', e.target.value)}
                       {...prop(`plazo-${g.uid}`)}
                     />
