@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { fechaCorta } from '../lib/fechas'
+import { LIMITE_POR_DEFECTO, analizarCarga, formatoNumero, horasPorDia } from '../lib/carga'
 
 const TIPOS = ['Boda', 'Cumpleaños', 'Corporativo', 'Social', 'Otro']
 
@@ -16,7 +17,37 @@ function ErrorCampo({ id, texto }) {
   return texto ? <span id={id} className="campo__error">{texto}</span> : null
 }
 
-export default function EditorEvento({ evento, onCerrar, onGuardado }) {
+// Aviso de sobrecarga diaria (US-07) con opciones para resolverla (Escenario 3)
+function AvisoConflicto({ aviso, onSugerir, onElegirDia, onReducir }) {
+  const { conflicto: c, sinEstaGestion, soloExcede, sugerencia } = aviso
+  return (
+    <div className="conflicto" role="status">
+      <p className="conflicto__titulo">Ese día quedaría con demasiadas horas</p>
+      <p>Quedarías con {formatoNumero(c.total)}h de gestión planificadas (límite {formatoNumero(c.limite)}h).</p>
+      {sinEstaGestion > 0 && (
+        <p className="conflicto__detalle">Sin contar esta gestión, ese día ya tienes {formatoNumero(sinEstaGestion)}h.</p>
+      )}
+      {soloExcede && (
+        <p className="conflicto__detalle">Esta gestión sola supera tu límite diario. Redúcela o divídela en dos gestiones.</p>
+      )}
+      <div className="conflicto__acciones">
+        <span className="conflicto__pregunta">¿Cómo lo resuelves?</span>
+        {sugerencia && (
+          <button type="button" className="btn btn--suave btn--chico" onClick={() => onSugerir(sugerencia.dia)}>
+            {sugerencia.tipo === 'posponer' ? 'Posponer' : 'Adelantar'} al {fechaCorta(sugerencia.dia)}
+          </button>
+        )}
+        <button type="button" className="btn btn--suave btn--chico" onClick={onElegirDia}>Elegir otro día</button>
+        <button type="button" className="btn btn--suave btn--chico" onClick={onReducir}>Reducir las horas</button>
+      </div>
+      {!sugerencia && !soloExcede && (
+        <p className="campo__ayuda">No encontramos un día libre antes del evento. Reduce las horas o cambia la fecha del evento.</p>
+      )}
+    </div>
+  )
+}
+
+export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR_DEFECTO, onCerrar, onGuardado }) {
   const editando = Boolean(evento)
   const ref = useRef(null)
   const [datos, setDatos] = useState({
@@ -30,6 +61,21 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
   const [errores, setErrores] = useState({})
   const [errorServidor, setErrorServidor] = useState('')
   const [guardando, setGuardando] = useState(false)
+
+  // Horas ya ocupadas por día en los demás eventos y conflictos del formulario actual
+  const otros = useMemo(() => horasPorDia(eventos, evento?.id), [eventos, evento])
+  const { conflictos, porUid: avisos } = useMemo(
+    () => analizarCarga({ gestiones, otros, limite, fechaEvento: datos.fecha }),
+    [gestiones, otros, limite, datos.fecha],
+  )
+  const enfocar = (id, abrirSelector) => {
+    const el = ref.current?.querySelector(`#${id}`)
+    if (!el) return
+    el.focus()
+    if (abrirSelector) {
+      try { el.showPicker?.() } catch { /* el navegador no permite abrirlo */ }
+    } else el.select?.()
+  }
 
   useEffect(() => {
     if (ref.current && !ref.current.open) ref.current.showModal()
@@ -194,6 +240,14 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
                     <ErrorCampo id={`err-horas-${g.uid}`} texto={errores[`horas-${g.uid}`]} />
                   </div>
                 </div>
+                {avisos.get(g.uid) && (
+                  <AvisoConflicto
+                    aviso={avisos.get(g.uid)}
+                    onSugerir={(dia) => cambiarGestion(g.uid, 'plazo', dia)}
+                    onElegirDia={() => enfocar(`g-plazo-${g.uid}`, true)}
+                    onReducir={() => enfocar(`g-horas-${g.uid}`)}
+                  />
+                )}
                 <button type="button" className="btn btn--texto btn--chico gestion__quitar" onClick={() => setGestiones((p) => p.filter((x) => x.uid !== g.uid))}>
                   Quitar gestión
                 </button>
@@ -207,11 +261,17 @@ export default function EditorEvento({ evento, onCerrar, onGuardado }) {
         </div>
 
         <footer className="cajon__pie">
+          {conflictos.length > 0 && (
+            <p className="alerta alerta--aviso" role="status">
+              {conflictos.length === 1 ? 'Hay 1 día' : `Hay ${conflictos.length} días`} con más horas que tu límite diario de {formatoNumero(limite)}h.
+              Puedes resolverlo en las gestiones o guardar de todos modos.
+            </p>
+          )}
           {errorServidor && <p className="alerta alerta--error" role="alert">{errorServidor}</p>}
           <div className="cajon__botones">
             <button type="button" className="btn btn--suave" onClick={onCerrar}>Cancelar</button>
             <button type="submit" className="btn btn--primario" disabled={guardando}>
-              {guardando ? (editando ? 'Guardando…' : 'Creando…') : editando ? 'Guardar cambios' : 'Crear evento'}
+              {guardando ? (editando ? 'Guardando…' : 'Creando…') : conflictos.length > 0 ? 'Guardar de todos modos' : editando ? 'Guardar cambios' : 'Crear evento'}
             </button>
           </div>
         </footer>
