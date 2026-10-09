@@ -1,7 +1,19 @@
 .landing { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.5rem); overflow-x: clip; }
 
-.landing__barra { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.4rem 0; }
+.landing__barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem clamp(1.1rem, 4vw, 2rem);
+  background: var(--grafito);
+  border-bottom: 1px solid var(--trazo);
+}
 .landing__acciones { display: flex; align-items: center; gap: 0.5rem; }
+#como-funciona, #privacidad { scroll-margin-top: 6rem; }
 
 /* ---------- Hero ---------- */
 .hero {
@@ -53,12 +65,10 @@
 @keyframes surgir-punto { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
 
 /* ---------- Pasos ---------- */
-.pasos { padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(3rem, 7vw, 5.5rem); }
+.pasos { padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(3rem, 7vw, 5.5rem); border-top: 1px solid var(--trazo); border-bottom: 1px solid var(--trazo); border-bottom: 1px solid var(--trazo); }
 .pasos h2, .privado h2 { font-size: clamp(1.9rem, 4vw, 2.75rem); font-weight: 700; }
 .pasos__lista { list-style: none; margin: 2.5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem clamp(1.5rem, 4vw, 3.5rem); }
 .paso { display: flex; flex-direction: column; gap: 0.6rem; }
-.paso:nth-child(2) { margin-top: 3rem; }
-.paso:nth-child(3) { margin-top: 1.5rem; }
 .paso__numero {
   display: grid; place-items: center; width: 3.4rem; height: 3.4rem; margin-bottom: 0.4rem;
   font: 800 1.4rem var(--display); color: var(--azul-claro); background: var(--azul-hondo); border-radius: var(--blob-a);
@@ -69,19 +79,49 @@
 .paso p { color: var(--niebla); max-width: 22rem; }
 
 /* ---------- Privacidad ---------- */
+.privado-seccion { padding: clamp(2rem, 5vw, 3.5rem) 0; }
 .privado {
   display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
-  padding: clamp(2rem, 5vw, 3.5rem); margin-bottom: 3rem;
+  padding: clamp(2rem, 5vw, 3.5rem);
   background: var(--grafito); border-radius: 56px 140px 64px 110px / 64px 90px 70px 80px;
 }
 .privado > div { display: flex; flex-direction: column; gap: 0.8rem; max-width: 36rem; }
 .privado p { color: var(--niebla); }
 
-.landing__pie { padding: 1.5rem 0 2.5rem; color: var(--niebla); font-size: 0.9rem; }
+.landing__pie {
+  padding: 2.5rem 0 1.5rem;
+  border-top: 1px solid var(--trazo);
+  color: var(--niebla);
+  font-size: 0.9rem;
+}
+.landing__pie-contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 2rem clamp(2rem, 8vw, 7rem);
+  padding-bottom: 2.5rem;
+}
+.landing__pie-marca { display: flex; flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+.landing__pie-marca p { max-width: 18rem; }
+.landing__pie-nav { display: flex; flex-direction: column; align-items: flex-start; gap: 0.65rem; }
+.landing__pie-nav h2 { margin-bottom: 0.25rem; color: var(--hielo); font: 700 0.95rem/1.2 var(--display); }
+.landing__pie-nav a { color: var(--niebla); text-decoration: none; transition: color 160ms ease; }
+.landing__pie-nav a:hover, .landing__pie-nav a:focus-visible { color: var(--azul-claro); }
+.landing__pie-final {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  font-size: 0.82rem;
+}
 
 @media (max-width: 480px) {
+  .landing__barra { flex-wrap: wrap; }
+  .landing__acciones { width: 100%; justify-content: flex-end; }
   .hilo__etiqueta { width: 9.6rem; padding: 0.55rem 0.8rem; }
   .hilo__etiqueta strong { font-size: 0.88rem; }
+  .landing__pie-contenido { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem 1rem; }
+  .landing__pie-marca { grid-column: 1 / -1; }
+  .landing__pie-final { flex-direction: column; gap: 0.4rem; }
 }
 
 @media (max-width: 860px) {
