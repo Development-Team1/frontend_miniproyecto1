@@ -7,11 +7,12 @@ import Landing from './pages/Landing'
 import Auth from './pages/Auth'
 import Eventos from './pages/Eventos'
 import Hoy from './pages/Hoy'
+import Configuracion from './pages/Configuracion'
 
 function Rutas() {
   const path = usePath()
   const { status } = useAuth()
-  const privada = path === '/eventos' || path === '/hoy'
+  const privada = path === '/eventos' || path === '/hoy' || path === '/configuracion'
   const deAcceso = path === '/ingresar' || path === '/registro'
 
   useEffect(() => {
@@ -27,6 +28,7 @@ function Rutas() {
   if (path === '/registro') return <Auth modo="registro" />
   if (path === '/eventos') return <Eventos />
   if (path === '/hoy') return <Hoy />
+  if (path === '/configuracion') return <Configuracion />
   return (
     <div className="pantalla-carga">
       <div style={{ textAlign: 'center' }}>

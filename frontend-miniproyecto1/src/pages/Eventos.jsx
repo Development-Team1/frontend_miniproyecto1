@@ -4,6 +4,7 @@ import ItemEvento from '../components/ItemEvento'
 import EditorEvento from '../components/EditorEvento'
 import ConfirmarBorrado from '../components/ConfirmarBorrado'
 import { api } from '../lib/api'
+import { LIMITE_POR_DEFECTO } from '../lib/carga'
 import { useAuth } from '../lib/auth-context'
 import { diasHasta, textoRelativo } from '../lib/fechas'
 import { useTitulo } from '../lib/router'
@@ -22,6 +23,7 @@ export default function Eventos() {
     new URLSearchParams(window.location.search).has('crear') ? { evento: null } : null,
   )
   const [porBorrar, setPorBorrar] = useState(null)
+  const [limite, setLimite] = useState(LIMITE_POR_DEFECTO)
   const [toast, setToast] = useState('')
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Mis eventos · Mini-proyecto 1')
@@ -29,7 +31,12 @@ export default function Eventos() {
   const cargar = useCallback(async () => {
     setEstado('cargando')
     try {
-      setEventos(await api('/events'))
+      const [lista, limiteApi] = await Promise.all([
+        api('/events'),
+        api('/settings/daily-limit').catch(() => ({ horas: LIMITE_POR_DEFECTO })),
+      ])
+      setEventos(lista)
+      setLimite(Number(limiteApi.horas))
       setEstado('listo')
     } catch (err) {
       setError(err.message)
@@ -143,7 +150,7 @@ export default function Eventos() {
         )}
       </main>
 
-      {editor && <EditorEvento evento={editor.evento} onCerrar={() => setEditor(null)} onGuardado={guardado} />}
+      {editor && <EditorEvento evento={editor.evento} eventos={eventos} limite={limite} onCerrar={() => setEditor(null)} onGuardado={guardado} />}
       {porBorrar && <ConfirmarBorrado evento={porBorrar} onCancelar={() => setPorBorrar(null)} onConfirmar={eliminar} />}
       {toast && <p className="aviso-toast" role="status">{toast}</p>}
     </div>

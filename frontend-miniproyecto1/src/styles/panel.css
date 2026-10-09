@@ -3,8 +3,8 @@
 .panel__barra {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: 0.9rem clamp(1.1rem, 4vw, 2rem);
-  background: var(--grafito);
-  border-bottom: 1px solid var(--trazo);
+  background: var(--grafito); border-bottom: 1px solid var(--trazo);
+  position: sticky; top: 0; z-index: 20;
 }
 .panel__usuario { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
 .panel__usuario > span { color: var(--niebla); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }

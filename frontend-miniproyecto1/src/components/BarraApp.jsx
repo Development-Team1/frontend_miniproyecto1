@@ -6,6 +6,7 @@ import { usePath } from '../lib/router'
 const SECCIONES = [
   { a: '/eventos', texto: 'Eventos' },
   { a: '/hoy', texto: 'Hoy' },
+  { a: '/configuracion', texto: 'Configuración' },
 ]
 
 export default function BarraApp() {
