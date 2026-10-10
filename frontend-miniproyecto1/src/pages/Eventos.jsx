@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import ItemEvento from '../components/ItemEvento'
 import EditorEvento from '../components/EditorEvento'
 import ConfirmarBorrado from '../components/ConfirmarBorrado'
 import { api } from '../lib/api'
-import { LIMITE_POR_DEFECTO } from '../lib/carga'
+import { LIMITE_POR_DEFECTO, diasSobrecargados, listarDias, resumenSobrecarga, sobrecargaDeEvento } from '../lib/carga'
 import { useAuth } from '../lib/auth-context'
 import { diasHasta, textoRelativo } from '../lib/fechas'
 import { useTitulo } from '../lib/router'
@@ -27,6 +27,22 @@ export default function Eventos() {
   const [toast, setToast] = useState('')
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Mis eventos · Mini-proyecto 1')
+
+  // Días con más horas que el límite diario, sumando todos los eventos del usuario
+  const sobrecarga = useMemo(() => diasSobrecargados(eventos, limite), [eventos, limite])
+
+  // Texto del aviso tras guardar o eliminar: qué sobrecargas se resolvieron y cuáles siguen
+  const mensajeTras = (base, nuevosEventos, eventoId) => {
+    const despues = diasSobrecargados(nuevosEventos, limite)
+    const { resueltos, propios } = resumenSobrecarga({ antes: sobrecarga, despues, eventoId })
+    let extra = ''
+    if (resueltos.length === 1) extra += ` Se resolvió la sobrecarga del ${listarDias(resueltos)}.`
+    else if (resueltos.length > 1) extra += ` Se resolvieron las sobrecargas del ${listarDias(resueltos)}.`
+    if (propios.length > 0) {
+      extra += ` Aún hay ${propios.length === 1 ? '1 día' : `${propios.length} días`} con más horas que tu límite (${listarDias(propios.map((d) => d.dia))}).`
+    }
+    return extra ? `${base}.${extra}` : base
+  }
 
   const cargar = useCallback(async () => {
     setEstado('cargando')
@@ -54,22 +70,24 @@ export default function Eventos() {
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(''), 3500)
+    const t = setTimeout(() => setToast(''), 6000)
     return () => clearTimeout(t)
   }, [toast])
 
   const guardado = (evento, edicion) => {
-    setEventos((prev) => [...prev.filter((e) => e.id !== evento.id), evento].sort(porFecha))
+    const nuevos = [...eventos.filter((e) => e.id !== evento.id), evento].sort(porFecha)
+    setToast(mensajeTras(edicion ? 'Cambios guardados' : 'Evento creado', nuevos, evento.id))
+    setEventos(nuevos)
     setAbierto(evento.id)
     setEditor(null)
-    setToast(edicion ? 'Cambios guardados' : 'Evento creado')
   }
 
   const eliminar = async () => {
     await api(`/events/${porBorrar.id}`, { method: 'DELETE' })
-    setEventos((prev) => prev.filter((e) => e.id !== porBorrar.id))
+    const nuevos = eventos.filter((e) => e.id !== porBorrar.id)
+    setToast(mensajeTras('Evento eliminado', nuevos, null))
+    setEventos(nuevos)
     setPorBorrar(null)
-    setToast('Evento eliminado')
   }
 
   const proximos = eventos.filter((e) => diasHasta(e.fecha) >= 0)
@@ -82,6 +100,7 @@ export default function Eventos() {
         <ItemEvento
           key={e.id}
           evento={e}
+          conflictos={diasHasta(e.fecha) < 0 ? [] : sobrecargaDeEvento(sobrecarga, e.id)}
           abierto={abierto === e.id}
           onAlternar={() => setAbierto(abierto === e.id ? null : e.id)}
           onEditar={() => setEditor({ evento: e })}
