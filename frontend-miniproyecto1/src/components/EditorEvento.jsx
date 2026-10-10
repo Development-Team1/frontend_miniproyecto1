@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { fechaCorta } from '../lib/fechas'
-import { LIMITE_POR_DEFECTO, analizarCarga, formatoNumero, horasPorDia } from '../lib/carga'
+import { LIMITE_POR_DEFECTO, analizarCarga, formatoNumero, horasPorDia, mensajeResuelto } from '../lib/carga'
+import { IconoCheck } from './Iconos'
 
 const TIPOS = ['Boda', 'Cumpleaños', 'Corporativo', 'Social', 'Otro']
 
@@ -15,6 +16,19 @@ const nuevaGestion = (t = {}) => ({
 
 function ErrorCampo({ id, texto }) {
   return texto ? <span id={id} className="campo__error">{texto}</span> : null
+}
+
+// Confirmación de que un conflicto se resolvió, indicando qué cambio lo resolvió
+function Confirmacion({ c }) {
+  return (
+    <div className="confirmacion" role="status">
+      <IconoCheck />
+      <div>
+        <p className="confirmacion__titulo">{c.titulo}</p>
+        <p className="confirmacion__detalle">{c.detalle}</p>
+      </div>
+    </div>
+  )
 }
 
 // Aviso de sobrecarga diaria (US-07) con opciones para resolverla (Escenario 3)
@@ -68,6 +82,27 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
     () => analizarCarga({ gestiones, otros, limite, fechaEvento: datos.fecha }),
     [gestiones, otros, limite, datos.fecha],
   )
+  // Detecta cuándo un conflicto desaparece y qué acción del usuario lo resolvió
+  const accionRef = useRef(null)
+  const baseRef = useRef(null)
+  const [confirmaciones, setConfirmaciones] = useState([])
+  useEffect(() => {
+    const accion = accionRef.current
+    // Al escribir horas se espera un momento para no confirmar valores a medias
+    const t = setTimeout(() => {
+      const dias = new Set(conflictos.map((c) => c.dia))
+      const previos = baseRef.current
+      baseRef.current = dias
+      accionRef.current = null
+      if (!previos || !accion) return
+      const resueltos = [...previos].filter((d) => !dias.has(d))
+      if (resueltos.length === 0) return
+      const msg = mensajeResuelto({ accion, gestiones, otros, limite, resueltos })
+      if (msg) setConfirmaciones((prev) => [...prev.filter((c) => c.uid !== msg.uid), msg])
+    }, accion?.tipo === 'horas' ? 700 : 0)
+    return () => clearTimeout(t)
+  }, [conflictos, gestiones, otros, limite])
+
   const enfocar = (id, abrirSelector) => {
     const el = ref.current?.querySelector(`#${id}`)
     if (!el) return
@@ -90,7 +125,16 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
       return siguiente
     })
   }
+  const quitarGestion = (uid) => {
+    const g = gestiones.find((x) => x.uid === uid)
+    accionRef.current = { tipo: 'quitar', uid, nombre: g?.nombre }
+    setGestiones((p) => p.filter((x) => x.uid !== uid))
+  }
   const cambiarGestion = (uid, campo, valor) => {
+    if (campo === 'plazo' || campo === 'horas') {
+      const g = gestiones.find((x) => x.uid === uid)
+      accionRef.current = { tipo: campo, uid, nombre: g?.nombre, horasAntes: Number(g?.horas) }
+    }
     setGestiones((p) => p.map((g) => (g.uid === uid ? { ...g, [campo]: valor } : g)))
     setErrores((p) => ({ ...p, [`${campo}-${uid}`]: undefined }))
   }
@@ -208,6 +252,7 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
             {gestiones.length === 0 && (
               <p className="gestiones__vacio">Aún no hay gestiones. Agrega la primera cuando quieras.</p>
             )}
+            {confirmaciones.filter((c) => c.uid === null).map((c) => <Confirmacion key={c.titulo + c.detalle} c={c} />)}
 
             {gestiones.map((g, i) => (
               <div className="gestion" key={g.uid} role="group" aria-label={`Gestión ${i + 1}`}>
@@ -248,7 +293,8 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
                     onReducir={() => enfocar(`g-horas-${g.uid}`)}
                   />
                 )}
-                <button type="button" className="btn btn--texto btn--chico gestion__quitar" onClick={() => setGestiones((p) => p.filter((x) => x.uid !== g.uid))}>
+                {!avisos.get(g.uid) && confirmaciones.filter((c) => c.uid === g.uid).map((c) => <Confirmacion key={c.titulo + c.detalle} c={c} />)}
+                <button type="button" className="btn btn--texto btn--chico gestion__quitar" onClick={() => quitarGestion(g.uid)}>
                   Quitar gestión
                 </button>
               </div>
