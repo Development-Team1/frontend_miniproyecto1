@@ -4,7 +4,7 @@ import ItemEvento from '../components/ItemEvento'
 import EditorEvento from '../components/EditorEvento'
 import ConfirmarBorrado from '../components/ConfirmarBorrado'
 import { api } from '../lib/api'
-import { LIMITE_POR_DEFECTO, diasSobrecargados, listarDias, resumenSobrecarga, sobrecargaDeEvento } from '../lib/carga'
+import { LIMITE_POR_DEFECTO, diasSobrecargados, listarDias, resumenSobrecarga } from '../lib/carga'
 import { useAuth } from '../lib/auth-context'
 import { diasHasta, textoRelativo } from '../lib/fechas'
 import { useTitulo } from '../lib/router'
@@ -31,16 +31,13 @@ export default function Eventos() {
   // Días con más horas que el límite diario, sumando todos los eventos del usuario
   const sobrecarga = useMemo(() => diasSobrecargados(eventos, limite), [eventos, limite])
 
-  // Texto del aviso tras guardar o eliminar: qué sobrecargas se resolvieron y cuáles siguen
-  const mensajeTras = (base, nuevosEventos, eventoId) => {
+  // Texto del aviso tras guardar o eliminar: qué sobrecargas se resolvieron
+  const mensajeTras = (base, nuevosEventos) => {
     const despues = diasSobrecargados(nuevosEventos, limite)
-    const { resueltos, propios } = resumenSobrecarga({ antes: sobrecarga, despues, eventoId })
+    const { resueltos } = resumenSobrecarga({ antes: sobrecarga, despues })
     let extra = ''
     if (resueltos.length === 1) extra += ` Se resolvió la sobrecarga del ${listarDias(resueltos)}.`
     else if (resueltos.length > 1) extra += ` Se resolvieron las sobrecargas del ${listarDias(resueltos)}.`
-    if (propios.length > 0) {
-      extra += ` Aún hay ${propios.length === 1 ? '1 día' : `${propios.length} días`} con más horas que tu límite (${listarDias(propios.map((d) => d.dia))}).`
-    }
     return extra ? `${base}.${extra}` : base
   }
 
@@ -76,7 +73,7 @@ export default function Eventos() {
 
   const guardado = (evento, edicion) => {
     const nuevos = [...eventos.filter((e) => e.id !== evento.id), evento].sort(porFecha)
-    setToast(mensajeTras(edicion ? 'Cambios guardados' : 'Evento creado', nuevos, evento.id))
+    setToast(mensajeTras(edicion ? 'Cambios guardados' : 'Evento creado', nuevos))
     setEventos(nuevos)
     setAbierto(evento.id)
     setEditor(null)
@@ -85,7 +82,7 @@ export default function Eventos() {
   const eliminar = async () => {
     await api(`/events/${porBorrar.id}`, { method: 'DELETE' })
     const nuevos = eventos.filter((e) => e.id !== porBorrar.id)
-    setToast(mensajeTras('Evento eliminado', nuevos, null))
+    setToast(mensajeTras('Evento eliminado', nuevos))
     setEventos(nuevos)
     setPorBorrar(null)
   }
@@ -100,7 +97,6 @@ export default function Eventos() {
         <ItemEvento
           key={e.id}
           evento={e}
-          conflictos={diasHasta(e.fecha) < 0 ? [] : sobrecargaDeEvento(sobrecarga, e.id)}
           abierto={abierto === e.id}
           onAlternar={() => setAbierto(abierto === e.id ? null : e.id)}
           onEditar={() => setEditor({ evento: e })}
