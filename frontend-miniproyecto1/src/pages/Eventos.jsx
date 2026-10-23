@@ -79,6 +79,12 @@ export default function Eventos() {
     setEditor(null)
   }
 
+  // Una gestión se marcó como hecha, se pospuso o se reabrió: se reemplaza el evento con lo que dice el servidor
+  const actualizado = (evento, mensaje) => {
+    setEventos((previos) => [...previos.filter((e) => e.id !== evento.id), evento].sort(porFecha))
+    if (mensaje) setToast(mensaje)
+  }
+
   const eliminar = async () => {
     await api(`/events/${porBorrar.id}`, { method: 'DELETE' })
     const nuevos = eventos.filter((e) => e.id !== porBorrar.id)
@@ -97,6 +103,9 @@ export default function Eventos() {
         <ItemEvento
           key={e.id}
           evento={e}
+          eventos={eventos}
+          limite={limite}
+          onActualizado={actualizado}
           abierto={abierto === e.id}
           onAlternar={() => setAbierto(abierto === e.id ? null : e.id)}
           onEditar={() => setEditor({ evento: e })}

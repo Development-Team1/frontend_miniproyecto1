@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import Link from '../components/Link'
+import AccionesGestion from '../components/AccionesGestion'
 import { api } from '../lib/api'
+import { LIMITE_POR_DEFECTO } from '../lib/carga'
 import { fechaCorta, fechaLarga, formatoHoras } from '../lib/fechas'
 import {
   GRUPOS, REGLA_ORDEN, agruparGestiones, aplanarGestiones, hoyISO, marcaDe, resumenDe, textoPlazo,
@@ -22,13 +24,20 @@ export default function Hoy() {
   const [error, setError] = useState('')
   const [filtroEvento, setFiltroEvento] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
+  const [limite, setLimite] = useState(LIMITE_POR_DEFECTO)
+  const [toast, setToast] = useState('')
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Hoy · Mini-proyecto 1')
 
   const cargar = useCallback(async () => {
     setEstado('cargando')
     try {
-      setEventos(await api('/events'))
+      const [lista, limiteApi] = await Promise.all([
+        api('/events'),
+        api('/settings/daily-limit').catch(() => ({ horas: LIMITE_POR_DEFECTO })),
+      ])
+      setEventos(lista)
+      setLimite(Number(limiteApi.horas))
       setEstado('listo')
     } catch (err) {
       setError(err.message)
@@ -39,6 +48,18 @@ export default function Hoy() {
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 6000)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  // Una gestión se marcó como hecha o se pospuso: se reemplaza el evento con lo que dice el servidor
+  const actualizado = (evento, mensaje) => {
+    setEventos((previos) => previos.map((e) => (e.id === evento.id ? evento : e)))
+    if (mensaje) setToast(mensaje)
+  }
 
   const gestiones = useMemo(() => aplanarGestiones(eventos), [eventos])
   // Solo eventos con gestiones por atender (las hechas no aparecen aquí)
@@ -178,6 +199,8 @@ export default function Hoy() {
                       <ul className="grupo__lista">
                         {items.map((it) => {
                           const marca = marcaDe(it)
+                          const evento = eventos.find((e) => e.id === it.evento.id)
+                          const tarea = evento?.tareas.find((t) => t.id === it.id)
                           return (
                             <li key={it.id} className="gh">
                               <span className="gh__marca" aria-hidden="true">
@@ -188,8 +211,14 @@ export default function Hoy() {
                                 <strong>{it.nombre}</strong>
                                 <p>Evento: {it.evento.nombre}</p>
                                 <p className="gh__plazo">{textoPlazo(it, fechaCorta)}</p>
+                                {it.status === 'pospuesta' && <span className="etiqueta etiqueta--pospuesta">Pospuesta</span>}
                               </div>
                               <span className="gh__horas">{formatoHoras(it.horas)}</span>
+                              {evento && tarea && (
+                                <div className="gh__acciones">
+                                  <AccionesGestion evento={evento} tarea={tarea} eventos={eventos} limite={limite} onActualizado={actualizado} />
+                                </div>
+                              )}
                             </li>
                           )
                         })}
@@ -202,6 +231,8 @@ export default function Hoy() {
           </>
         )}
       </main>
+
+      {toast && <p className="aviso-toast" role="status">{toast}</p>}
     </div>
   )
 }

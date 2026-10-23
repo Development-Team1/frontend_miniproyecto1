@@ -296,3 +296,122 @@ export function confirmarCambio(c) {
     ? `Se cambió la fecha de la gestión «${c.nombre}» del evento «${c.eventoNombre}», del ${fechaCorta(c.de)} al ${fechaCorta(c.a)}, con éxito.`
     : `Se redujeron las horas de la gestión «${c.nombre}» del evento «${c.eventoNombre}», de ${formatoNumero(c.de)}h a ${formatoNumero(c.a)}h, con éxito.`
 }
+
+// ---------- Progreso, posponer y reabrir una gestión (vistas Eventos y Hoy) ----------
+
+// Mismo cálculo que hace el servidor (carga.py · calcular_progreso). Solo se usa si el evento no trae `progreso`.
+export function calcularProgreso(tareas) {
+  const total = tareas.length
+  const hechas = tareas.filter((t) => t.status === 'hecha').length
+  const pospuestas = tareas.filter((t) => t.status === 'pospuesta').length
+  return {
+    total,
+    hechas,
+    pospuestas,
+    pendientes: total - hechas - pospuestas,
+    faltan: total - hechas,
+    porcentaje: total ? Math.round((hechas * 100) / total) : 0,
+    completo: total > 0 && hechas === total,
+  }
+}
+
+export const progresoDe = (evento) => evento.progreso ?? calcularProgreso(evento.tareas)
+
+export function textoProgreso(p) {
+  if (p.completo) return '¡El evento quedó listo! Todas sus gestiones están hechas.'
+  return `Progreso del evento: ${p.porcentaje}% (${p.hechas} de ${p.total} hechas).`
+}
+
+// Horas por día de todas las gestiones activas del usuario, sin contar la gestión indicada.
+export function cargaSinGestion(eventos, tareaId) {
+  const mapa = new Map()
+  for (const e of eventos) {
+    for (const t of e.tareas) {
+      if (t.id === tareaId || t.status === 'hecha') continue
+      mapa.set(t.plazo, redondear((mapa.get(t.plazo) || 0) + Number(t.horas_estimadas)))
+    }
+  }
+  return mapa
+}
+
+// Primer día entre `desde` y `hasta` (ambos incluidos) donde la gestión cabe sin pasar el límite.
+function primerDiaConEspacio({ desde, hasta, horas, mapa, limite }) {
+  let d = desde
+  for (let i = 0; i < 400 && d <= hasta; i++, d = sumarDias(d, 1)) {
+    if (redondear((mapa.get(d) || 0) + horas) <= limite + EPS) return d
+  }
+  return null
+}
+
+const mitadAbajo = (n) => Math.floor(n * 2 + EPS) / 2
+
+/*
+ * Evalúa a qué día se quiere llevar una gestión y, si hay conflicto, calcula las soluciones automáticas:
+ *   alternativa: el día más cercano con espacio (sin pasar de la fecha del evento).
+ *   reduccion:   horas (múltiplos de 0,5) a las que cabe en el día elegido.
+ *   extender:    mover la fecha del evento al primer día con espacio posterior a ella.
+ * Tipos de problema: sin_ventana | sin_fecha | antes | evento | sobrecarga.
+ */
+function evaluarDestino({ evento, tarea, mapa, limite, fecha, min, desdeAlt, hoy, ventanaCerrada = false }) {
+  const horas = Number(tarea.horas_estimadas)
+  const max = evento.fecha
+  const buscar = (desde, hasta) => primerDiaConEspacio({ desde, hasta, horas, mapa, limite })
+  const conTotal = (dia) => ({ dia, total: redondear((mapa.get(dia) || 0) + horas) })
+
+  let problema = null
+  if (ventanaCerrada) problema = { tipo: 'sin_ventana' }
+  else if (!fecha) problema = { tipo: 'sin_fecha' }
+  else if (fecha < min) problema = { tipo: 'antes' }
+  else if (fecha > max) problema = { tipo: 'evento' }
+  else if (redondear((mapa.get(fecha) || 0) + horas) > limite + EPS) {
+    const ocupadas = redondear(mapa.get(fecha) || 0)
+    problema = { tipo: 'sobrecarga', dia: fecha, ocupadas, total: redondear(ocupadas + horas) }
+  }
+
+  const soluciones = {}
+  if (problema && problema.tipo !== 'sin_fecha') {
+    const dentro = Boolean(fecha) && fecha >= desdeAlt && fecha <= max
+    let alt = ventanaCerrada ? null : buscar(dentro ? sumarDias(fecha, 1) : desdeAlt, max)
+    if (!alt && dentro) alt = buscar(desdeAlt, sumarDias(fecha, -1))
+    if (alt) soluciones.alternativa = conTotal(alt)
+
+    if (problema.tipo === 'sobrecarga') {
+      const m = mitadAbajo(limite - (mapa.get(fecha) || 0))
+      if (m >= 0.5 && m < horas) soluciones.reduccion = { horas: m, dia: fecha }
+    }
+
+    if (problema.tipo === 'evento' || problema.tipo === 'sin_ventana' || (problema.tipo === 'sobrecarga' && !alt)) {
+      let desde = fecha && fecha > max ? fecha : sumarDias(max, 1)
+      if (desde < min) desde = min
+      if (desde < hoy) desde = hoy
+      const dia = buscar(desde, sumarDias(desde, 90))
+      if (dia) soluciones.extender = conTotal(dia)
+    }
+  }
+  return { min, max, horas, limite, problema, soluciones }
+}
+
+// Posponer: la nueva fecha debe ser posterior al plazo actual, no estar en el pasado, no pasar de la fecha del evento
+// y no dejar ese día por encima del límite diario.
+export function analizarPosposicion({ evento, tarea, eventos, limite, fecha, hoy = hoyISO() }) {
+  const siguiente = sumarDias(tarea.plazo, 1)
+  const min = siguiente > hoy ? siguiente : hoy
+  return evaluarDestino({
+    evento, tarea, limite, fecha, min, hoy,
+    mapa: cargaSinGestion(eventos, tarea.id),
+    desdeAlt: min,
+    ventanaCerrada: min > evento.fecha,
+  })
+}
+
+// Reabrir una gestión hecha vuelve a sumar sus horas a su día: no puede superar el límite (igual que el servidor).
+export function analizarReapertura({ evento, tarea, eventos, limite, hoy = hoyISO() }) {
+  const siguiente = sumarDias(tarea.plazo, 1)
+  return evaluarDestino({
+    evento, tarea, limite, hoy,
+    fecha: tarea.plazo,
+    min: tarea.plazo,
+    mapa: cargaSinGestion(eventos, tarea.id),
+    desdeAlt: siguiente > hoy ? siguiente : hoy,
+  })
+}
