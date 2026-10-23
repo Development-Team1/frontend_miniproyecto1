@@ -41,7 +41,9 @@ export default function Hoy() {
   }, [cargar])
 
   const gestiones = useMemo(() => aplanarGestiones(eventos), [eventos])
-  const eventosConGestiones = eventos.filter((e) => e.tareas.length > 0)
+  // Solo eventos con gestiones por atender (las hechas no aparecen aquí)
+  const eventosConGestiones = eventos.filter((e) => gestiones.some((g) => g.evento.id === e.id))
+  const hayHechas = eventos.some((e) => e.tareas.length > 0)
 
   const visibles = gestiones.filter(
     (g) =>
@@ -64,7 +66,11 @@ export default function Hoy() {
           <div>
             <h1>Hoy</h1>
             <p className="hoy__fecha">{fechaLarga(hoyISO())}</p>
-            {estado === 'listo' && <p className="hoy__resumen">{resumenDe(gestiones)}</p>}
+            {estado === 'listo' && (
+              <p className="hoy__resumen">
+                {gestiones.length === 0 && hayHechas ? 'Estás al día: no tienes gestiones pendientes.' : resumenDe(gestiones)}
+              </p>
+            )}
           </div>
         </section>
 
@@ -82,7 +88,17 @@ export default function Hoy() {
           </div>
         )}
 
-        {estado === 'listo' && gestiones.length === 0 && (
+        {estado === 'listo' && gestiones.length === 0 && hayHechas && (
+          <div className="vacio">
+            <h2>Todo al día</h2>
+            <p>Ya no tienes gestiones pendientes. Cuando agregues nuevas, aparecerán aquí.</p>
+            <div className="vacio__acciones">
+              <Link to="/eventos" className="btn btn--primario">Ir a mis eventos</Link>
+            </div>
+          </div>
+        )}
+
+        {estado === 'listo' && gestiones.length === 0 && !hayHechas && (
           <div className="vacio">
             <h2>Aún no tienes gestiones</h2>
             <p>
