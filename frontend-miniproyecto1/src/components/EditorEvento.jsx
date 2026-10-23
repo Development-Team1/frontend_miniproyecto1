@@ -10,6 +10,8 @@ const TIPOS = ['Boda', 'Cumpleaños', 'Corporativo', 'Social', 'Otro']
 let contador = 0
 const nuevaGestion = (t = {}) => ({
   uid: ++contador,
+  id: t.id ?? null, // identifica la gestión en el servidor: así conserva su estado aunque se renombre
+  hecha: t.status === 'hecha', // una gestión hecha no suma horas al día
   nombre: t.nombre ?? '',
   plazo: t.plazo ?? '',
   plazoOriginal: t.plazo ?? null, // en un evento existente, su fecha previa sigue siendo válida aunque ya haya pasado
@@ -192,6 +194,7 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
           tipo: datos.tipo,
           fecha: datos.fecha,
           tareas: gestiones.map((g) => ({
+            ...(g.id ? { id: g.id } : {}),
             nombre: g.nombre.trim(),
             plazo: g.plazo,
             horas_estimadas: Number(g.horas),
@@ -274,6 +277,7 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
 
             {gestiones.map((g, i) => (
               <div className="gestion" key={g.uid} role="group" aria-label={`Gestión ${i + 1}`}>
+                {g.hecha && <p className="campo__ayuda">Esta gestión ya está hecha, por eso no suma horas al día.</p>}
                 <div className="campo">
                   <label htmlFor={`g-nombre-${g.uid}`}>Qué hay que hacer</label>
                   <input

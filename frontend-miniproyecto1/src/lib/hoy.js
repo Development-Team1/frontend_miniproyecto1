@@ -1,4 +1,18 @@
-
+/*
+ * Regla de prioridad de la vista "Hoy" (se muestra tal cual en la interfaz):
+ *
+ *  1. Los grupos van en este orden: Gestiones vencidas, Para hoy, Próximas.
+ *  2. Dentro de cada grupo se ordena por fecha objetivo (plazo) de menor a mayor:
+ *     en "Vencidas" la más antigua queda arriba y en "Próximas" la más cercana.
+ *  3. Si dos gestiones tienen la misma fecha, va primero la de menor esfuerzo
+ *     (menos horas estimadas). Todas las de "Para hoy" comparten fecha, así que
+ *     ahí manda el esfuerzo.
+ *  4. Si aún empatan, se ordenan por nombre y, por último, por id (orden estable).
+ *
+ * El grupo de una gestión depende solo de su plazo frente a la fecha de hoy.
+ * "Próximas" incluye todas las que vencen después de hoy, sin límite de días.
+ * Las gestiones ya hechas no aparecen: no requieren atención.
+ */
 import { diasHasta } from './fechas'
 
 export const REGLA_ORDEN = [
@@ -29,7 +43,7 @@ export function estadoDe(plazo) {
 // Convierte la lista de eventos en una lista plana de gestiones, cada una con su evento.
 export function aplanarGestiones(eventos) {
   return eventos.flatMap((e) =>
-    e.tareas.map((t) => ({
+    e.tareas.filter((t) => t.status !== 'hecha').map((t) => ({
       id: t.id,
       nombre: t.nombre,
       plazo: t.plazo,

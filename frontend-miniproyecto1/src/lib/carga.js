@@ -5,6 +5,7 @@
  * del usuario SUPERA su límite diario (si es igual al límite, no hay conflicto).
  * La suma incluye las gestiones de sus demás eventos y las del evento que se está editando.
  * El límite por defecto es 6 horas y el usuario lo configura entre 1 y 16.
+ * Las gestiones ya hechas (status === 'hecha') no ocupan horas del día, así que no cuentan.
  */
 import { fechaCorta, leerFecha } from './fechas'
 import { hoyISO } from './hoy'
@@ -35,6 +36,7 @@ export function horasPorDia(eventos, excluirEventoId) {
   for (const e of eventos) {
     if (e.id === excluirEventoId) continue
     for (const t of e.tareas) {
+      if (t.status === 'hecha') continue
       mapa.set(t.plazo, redondear((mapa.get(t.plazo) || 0) + Number(t.horas_estimadas)))
     }
   }
@@ -46,7 +48,7 @@ function horasDelFormulario(gestiones, excluirUid) {
   const mapa = new Map()
   for (const g of gestiones) {
     const h = Number(g.horas)
-    if (g.uid === excluirUid || !g.plazo || !(h > 0)) continue
+    if (g.uid === excluirUid || g.hecha || !g.plazo || !(h > 0)) continue
     mapa.set(g.plazo, redondear((mapa.get(g.plazo) || 0) + h))
   }
   return mapa
@@ -100,7 +102,7 @@ export function analizarCarga({ gestiones, otros, limite, fechaEvento }) {
   for (const g of gestiones) {
     const c = porDia.get(g.plazo)
     const h = Number(g.horas)
-    if (!c || !(h > 0)) continue
+    if (g.hecha || !c || !(h > 0)) continue
     porUid.set(g.uid, {
       conflicto: c,
       sinEstaGestion: redondear(c.total - h),
@@ -119,6 +121,7 @@ export function diasSobrecargados(eventos, limite) {
   const porDia = new Map()
   for (const e of eventos) {
     for (const t of e.tareas) {
+      if (t.status === 'hecha') continue
       const d = porDia.get(t.plazo) || { dia: t.plazo, total: 0, eventos: new Set() }
       d.total = redondear(d.total + Number(t.horas_estimadas))
       d.eventos.add(e.id)
@@ -180,6 +183,7 @@ export function detalleSobrecarga(eventos, limite, desde = hoyISO()) {
   const mapa = new Map()
   for (const e of eventos) {
     for (const t of e.tareas) {
+      if (t.status === 'hecha') continue
       const d = mapa.get(t.plazo) || { dia: t.plazo, total: 0, items: [] }
       const h = Number(t.horas_estimadas)
       d.total = redondear(d.total + h)
@@ -192,7 +196,7 @@ export function detalleSobrecarga(eventos, limite, desde = hoyISO()) {
 
 const diasPorFecha = (copia) => {
   const carga = new Map()
-  for (const e of copia) for (const t of e.tareas) carga.set(t.plazo, redondear((carga.get(t.plazo) || 0) + Number(t.horas_estimadas)))
+  for (const e of copia) for (const t of e.tareas) if (t.status !== 'hecha') carga.set(t.plazo, redondear((carga.get(t.plazo) || 0) + Number(t.horas_estimadas)))
   return carga
 }
 
@@ -213,7 +217,7 @@ export function planReprogramar(eventos, limite, hoy = hoyISO()) {
     while (carga.get(dia) > limite + EPS) {
       const exceso = redondear(carga.get(dia) - limite)
       const candidatas = []
-      for (const e of copia) for (const t of e.tareas) if (t.plazo === dia) candidatas.push({ e, t, h: Number(t.horas_estimadas) })
+      for (const e of copia) for (const t of e.tareas) if (t.plazo === dia && t.status !== 'hecha') candidatas.push({ e, t, h: Number(t.horas_estimadas) })
       candidatas.sort((a, b) => a.h - b.h)
       // Primero la más pequeña que por sí sola resuelve el exceso; si no hay, las más grandes
       const orden = [...candidatas.filter((c) => c.h >= exceso - EPS), ...candidatas.filter((c) => c.h < exceso - EPS).reverse()]
@@ -255,7 +259,7 @@ export function planReducir(eventos, limite, hoy = hoyISO()) {
   for (const dia of dias) {
     let exceso = redondear(carga.get(dia) - limite)
     const items = []
-    for (const e of copia) for (const t of e.tareas) if (t.plazo === dia) items.push({ e, t, h: Number(t.horas_estimadas) })
+    for (const e of copia) for (const t of e.tareas) if (t.plazo === dia && t.status !== 'hecha') items.push({ e, t, h: Number(t.horas_estimadas) })
     items.sort((a, b) => b.h - a.h)
     for (const it of items) {
       if (exceso <= EPS) break
@@ -276,7 +280,7 @@ export const cuerpoEvento = (e) => ({
   nombre: e.nombre,
   tipo: e.tipo,
   fecha: e.fecha,
-  tareas: e.tareas.map((t) => ({ nombre: t.nombre, plazo: t.plazo, horas_estimadas: Number(t.horas_estimadas) })),
+  tareas: e.tareas.map((t) => ({ id: t.id, nombre: t.nombre, plazo: t.plazo, horas_estimadas: Number(t.horas_estimadas) })),
 })
 
 // "«Prueba de menú» (Boda) del 16 de oct al 17 de oct" / "... de 5h a 4h"
