@@ -50,6 +50,7 @@ export function aplanarGestiones(eventos) {
       horas: Number(t.horas_estimadas),
       dias: diasHasta(t.plazo),
       estado: estadoDe(t.plazo),
+      status: t.status,
       evento: { id: e.id, nombre: e.nombre, tipo: e.tipo },
     })),
   )

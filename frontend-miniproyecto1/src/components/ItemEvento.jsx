@@ -1,8 +1,39 @@
+import AccionesGestion from './AccionesGestion'
+import { progresoDe } from '../lib/carga'
 import { diaDelMes, diasHasta, fechaCorta, fechaLarga, formatoHoras, mesCorto, textoRelativo } from '../lib/fechas'
 
 const FORMAS = ['var(--blob-a)', 'var(--blob-b)', 'var(--blob-c)']
 
-export default function ItemEvento({ evento, abierto, onAlternar, onEditar, onEliminar }) {
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`
+
+// Barra de progreso de preparación: gestiones hechas respecto al total (las pospuestas se ven aparte).
+function BarraProgreso({ progreso }) {
+  const { total, hechas, pospuestas, pendientes, porcentaje, completo } = progreso
+  if (total === 0) return null
+  const ancho = (n) => `${(n * 100) / total}%`
+  const partes = [`${hechas} de ${plural(total, 'gestión hecha', 'gestiones hechas')}`]
+  if (pospuestas > 0) partes.push(plural(pospuestas, 'pospuesta', 'pospuestas'))
+  if (pendientes > 0) partes.push(plural(pendientes, 'pendiente', 'pendientes'))
+  return (
+    <div className={`progreso${completo ? ' progreso--completo' : ''}`}>
+      <div className="progreso__cabecera">
+        <span>{completo ? '¡Todo listo!' : 'Preparación'}</span>
+        <b>{porcentaje}%</b>
+      </div>
+      <div
+        className="progreso__barra" role="progressbar" aria-label="Progreso de preparación del evento"
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={porcentaje}
+        aria-valuetext={`${porcentaje}%: ${partes.join(', ')}`}
+      >
+        <span className="progreso__hechas" style={{ width: ancho(hechas) }} />
+        <span className="progreso__pospuestas" style={{ width: ancho(pospuestas) }} />
+      </div>
+      <p className="progreso__detalle">{partes.join(' · ')}</p>
+    </div>
+  )
+}
+
+export default function ItemEvento({ evento, eventos, limite, abierto, onAlternar, onEditar, onEliminar, onActualizado }) {
   const pasado = diasHasta(evento.fecha) < 0
   const n = evento.tareas.length
   const horas = evento.tareas.reduce((suma, t) => suma + Number(t.horas_estimadas), 0)
@@ -29,6 +60,8 @@ export default function ItemEvento({ evento, abierto, onAlternar, onEditar, onEl
           </span>
         </button>
 
+        <BarraProgreso progreso={progresoDe(evento)} />
+
         {abierto && (
           <div className="evento__detalle" id={idPanel}>
             <p className="evento__fecha-larga">{fechaLarga(evento.fecha)}</p>
@@ -37,10 +70,17 @@ export default function ItemEvento({ evento, abierto, onAlternar, onEditar, onEl
             ) : (
               <ul className="evento__gestiones">
                 {gestiones.map((g) => (
-                  <li key={g.id}>
-                    <span className="gestion-nombre">{g.nombre}</span>
-                    <span className="gestion-dato">Plazo: {fechaCorta(g.plazo)}</span>
-                    <span className="gestion-dato">{formatoHoras(g.horas_estimadas)}</span>
+                  <li key={g.id} className={`gestion gestion--${g.status}`}>
+                    <div className="gestion__fila">
+                      <span className="gestion-nombre">
+                        {g.nombre}
+                        {g.status === 'hecha' && <span className="etiqueta etiqueta--hecha">Hecha</span>}
+                        {g.status === 'pospuesta' && <span className="etiqueta etiqueta--pospuesta">Pospuesta</span>}
+                      </span>
+                      <span className="gestion-dato">Plazo: {fechaCorta(g.plazo)}</span>
+                      <span className="gestion-dato">{formatoHoras(g.horas_estimadas)}</span>
+                    </div>
+                    <AccionesGestion evento={evento} tarea={g} eventos={eventos} limite={limite} onActualizado={onActualizado} />
                   </li>
                 ))}
               </ul>
