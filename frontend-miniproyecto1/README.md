@@ -11,6 +11,7 @@ React + Vite, desplegado en Vercel. Habla con la API FastAPI (Render) mediante `
 | `/ingresar` | pública | Iniciar sesión |
 | `/eventos` | solo con sesión | Crear, editar y eliminar eventos propios |
 | `/hoy` | solo con sesión | Gestiones vencidas, para hoy y próximas, con filtros |
+| `/progreso` | solo con sesión | Progreso general y por evento, con marcar como hecha y posponer |
 
 `vercel.json` redirige todas las rutas a `index.html` para que funcione la navegación directa.
 
