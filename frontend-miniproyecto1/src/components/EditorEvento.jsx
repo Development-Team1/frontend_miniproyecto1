@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api'
-import { fechaCorta } from '../lib/fechas'
+import { fechaCorta, fechaLarga } from '../lib/fechas'
 import { hoyISO } from '../lib/hoy'
 import { LIMITE_POR_DEFECTO, analizarCarga, formatoNumero, horasPorDia, mensajeResuelto } from '../lib/carga'
 import { IconoCheck } from './Iconos'
@@ -34,7 +34,25 @@ function Confirmacion({ c }) {
     </div>
   )
 }
-
+// Fecha del evento anterior a hoy, con opciones para resolverla (mismo patrón que el aviso de sobrecarga)
+function AvisoFechaPasada({ id, hoy, sugerida, onUsar, onElegirDia }) {
+  return (
+    <div id={id} className="conflicto" role="status">
+      <p className="conflicto__titulo">Esa fecha ya pasó</p>
+      <p>La fecha del evento no puede ser anterior a hoy ({fechaCorta(hoy)}).</p>
+      {sugerida !== hoy && (
+        <p className="conflicto__detalle">Elegimos la fecha más cercana en la que todas tus gestiones siguen cabiendo.</p>
+      )}
+      <div className="conflicto__acciones">
+        <span className="conflicto__pregunta">¿Cómo lo resuelves?</span>
+        <button type="button" className="btn btn--suave btn--chico" onClick={onUsar}>
+          {sugerida === hoy ? `Usar hoy (${fechaCorta(hoy)})` : `Usar el ${fechaCorta(sugerida)}`}
+        </button>
+        <button type="button" className="btn btn--suave btn--chico" onClick={onElegirDia}>Elegir otro día</button>
+      </div>
+    </div>
+  )
+}
 // Aviso de sobrecarga diaria (US-07) con opciones para resolverla (Escenario 3)
 function AvisoConflicto({ aviso, onSugerir, onElegirDia, onReducir }) {
   const { conflicto: c, sinEstaGestion, soloExcede, sugerencia, reduccion } = aviso
@@ -148,12 +166,22 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
     setErrores((p) => ({ ...p, [`${campo}-${uid}`]: undefined }))
   }
 
-  const hoy = hoyISO()
+   const hoy = hoyISO()
+  // Fecha pasada (en un evento existente, su fecha previa sigue siendo válida) y la fecha válida más cercana:
+  // hoy, o el último plazo de las gestiones si ya vence después de hoy
+  const fechaPasada = Boolean(datos.fecha) && datos.fecha < hoy && datos.fecha !== evento?.fecha
+  const fechaSugerida = gestiones.reduce((max, g) => (g.plazo > max ? g.plazo : max), hoy)
+  const [fechaCorregida, setFechaCorregida] = useState(null)
+  const corregirFecha = () => {
+    cambiarDato('fecha', fechaSugerida)
+    setFechaCorregida({ titulo: 'Fecha corregida', detalle: `El evento ahora es el ${fechaLarga(fechaSugerida)}.` })
+  }
   const validar = () => {
     const e = {}
     if (!datos.nombre.trim()) e.nombre = 'Escribe un nombre para el evento.'
     if (!datos.tipo) e.tipo = 'Elige qué tipo de evento es.'
     if (!datos.fecha) e.fecha = 'Elige la fecha del evento.'
+    else if (datos.fecha < hoy && datos.fecha !== evento?.fecha) e.fecha = `La fecha del evento no puede ser anterior a hoy (${fechaCorta(hoy)}).`
     gestiones.forEach((g) => {
       if (!g.nombre.trim()) e[`nombre-${g.uid}`] = 'Describe qué hay que hacer, por ejemplo «Reservar el salón».'
       if (!g.plazo) e[`plazo-${g.uid}`] = 'Elige hasta cuándo debe estar lista.'
@@ -259,8 +287,15 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
             <label htmlFor="ev-fecha">Fecha del evento</label>
             <input
               id="ev-fecha" className="entrada" type="date"
-              value={datos.fecha} onChange={(e) => cambiarDato('fecha', e.target.value)} {...prop('fecha')}
+              min={evento?.fecha && evento.fecha < hoy ? evento.fecha : hoy}
+              value={datos.fecha} onChange={(e) => { setFechaCorregida(null); cambiarDato('fecha', e.target.value) }} {...prop('fecha')}
             />
+            {fechaPasada ? (
+              <AvisoFechaPasada id="err-fecha" hoy={hoy} sugerida={fechaSugerida} onUsar={corregirFecha} onElegirDia={() => enfocar('ev-fecha', true)} />
+            ) : (
+              <ErrorCampo id="err-fecha" texto={errores.fecha} />
+            )}
+            {fechaCorregida && !fechaPasada && <Confirmacion c={fechaCorregida} />}
             <ErrorCampo id="err-fecha" texto={errores.fecha} />
           </div>
 

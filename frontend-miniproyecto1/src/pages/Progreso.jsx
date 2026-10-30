@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import Link from '../components/Link'
 import AccionesGestion from '../components/AccionesGestion'
+import Aviso from '../components/Aviso'
 import { api } from '../lib/api'
 import { LIMITE_POR_DEFECTO } from '../lib/carga'
 import { fechaCorta, formatoHoras, textoRelativo } from '../lib/fechas'
 import { hoyISO } from '../lib/hoy'
 import { FILTROS, compararTarjetas, estadoGestion, proximoPlazo, resumirGestiones } from '../lib/progreso'
 import { useTitulo } from '../lib/router'
+import { useAviso } from '../lib/useAviso'
 import { MENSAJE_SERVIDOR_LENTO, useAvisoLento } from '../lib/useAvisoLento'
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`
@@ -146,7 +148,7 @@ export default function Progreso() {
   const [limite, setLimite] = useState(LIMITE_POR_DEFECTO)
   const [filtro, setFiltro] = useState('todos')
   const [abiertas, setAbiertas] = useState(() => new Set())
-  const [toast, setToast] = useState('')
+  const { aviso, avisar, deshacer, ocupado } = useAviso()
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Progreso · Mini-proyecto 1')
   const hoy = hoyISO()
@@ -171,16 +173,14 @@ export default function Progreso() {
     cargar()
   }, [cargar])
 
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(''), 6000)
-    return () => clearTimeout(t)
-  }, [toast])
-
   // Una gestión se marcó como hecha, se pospuso o se reabrió: se reemplaza el evento con lo que dice el servidor
-  const actualizado = (evento, mensaje) => {
-    setEventos((previos) => previos.map((e) => (e.id === evento.id ? evento : e)))
-    if (mensaje) setToast(mensaje)
+  const reemplazar = (evento) => setEventos((previos) => previos.map((e) => (e.id === evento.id ? evento : e)))
+  const actualizado = (evento, mensaje, revertir) => {
+    reemplazar(evento)
+    avisar(mensaje, revertir && (async () => {
+      reemplazar(await revertir())
+      return 'Cambio deshecho.'
+    }))
   }
 
   const alternar = (id) =>
@@ -316,7 +316,7 @@ export default function Progreso() {
         )}
       </main>
 
-      {toast && <p className="aviso-toast" role="status">{toast}</p>}
+      <Aviso aviso={aviso} ocupado={ocupado} onDeshacer={deshacer} />
     </div>
   )
 }
