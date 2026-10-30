@@ -3,11 +3,15 @@ import BarraApp from '../components/BarraApp'
 import ItemEvento from '../components/ItemEvento'
 import EditorEvento from '../components/EditorEvento'
 import ConfirmarBorrado from '../components/ConfirmarBorrado'
+import Aviso from '../components/Aviso'
+import FiltrosEventos from '../components/FiltrosEventos'
 import { api } from '../lib/api'
 import { LIMITE_POR_DEFECTO, diasSobrecargados, listarDias, resumenSobrecarga } from '../lib/carga'
 import { useAuth } from '../lib/auth-context'
 import { diasHasta, textoRelativo } from '../lib/fechas'
+import { FILTROS_INICIALES, filtrarEventos, ordenarEventos } from '../lib/eventosFiltro'
 import { useTitulo } from '../lib/router'
+import { useAviso } from '../lib/useAviso'
 import { MENSAJE_SERVIDOR_LENTO, useAvisoLento } from '../lib/useAvisoLento'
 
 const porFecha = (a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id
@@ -24,7 +28,8 @@ export default function Eventos() {
   )
   const [porBorrar, setPorBorrar] = useState(null)
   const [limite, setLimite] = useState(LIMITE_POR_DEFECTO)
-  const [toast, setToast] = useState('')
+  const { aviso, avisar, deshacer, ocupado } = useAviso()
+  const [filtros, setFiltros] = useState(FILTROS_INICIALES)
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Mis eventos · Mini-proyecto 1')
 
@@ -65,36 +70,38 @@ export default function Eventos() {
     if (window.location.search) window.history.replaceState({}, '', window.location.pathname)
   }, [])
 
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(''), 6000)
-    return () => clearTimeout(t)
-  }, [toast])
-
   const guardado = (evento, edicion) => {
     const nuevos = [...eventos.filter((e) => e.id !== evento.id), evento].sort(porFecha)
-    setToast(mensajeTras(edicion ? 'Cambios guardados' : 'Evento creado', nuevos))
+    avisar(mensajeTras(edicion ? 'Cambios guardados' : 'Evento creado', nuevos))
     setEventos(nuevos)
     setAbierto(evento.id)
     setEditor(null)
   }
 
   // Una gestión se marcó como hecha, se pospuso o se reabrió: se reemplaza el evento con lo que dice el servidor
-  const actualizado = (evento, mensaje) => {
-    setEventos((previos) => [...previos.filter((e) => e.id !== evento.id), evento].sort(porFecha))
-    if (mensaje) setToast(mensaje)
+  const reemplazar = (evento) => setEventos((previos) => [...previos.filter((e) => e.id !== evento.id), evento].sort(porFecha))
+  const actualizado = (evento, mensaje, revertir) => {
+    reemplazar(evento)
+    avisar(mensaje, revertir && (async () => {
+      reemplazar(await revertir())
+      return 'Cambio deshecho.'
+    }))
   }
 
   const eliminar = async () => {
     await api(`/events/${porBorrar.id}`, { method: 'DELETE' })
     const nuevos = eventos.filter((e) => e.id !== porBorrar.id)
-    setToast(mensajeTras('Evento eliminado', nuevos))
+    avisar(mensajeTras('Evento eliminado', nuevos))
     setEventos(nuevos)
     setPorBorrar(null)
   }
 
-  const proximos = eventos.filter((e) => diasHasta(e.fecha) >= 0)
-  const pasados = eventos.filter((e) => diasHasta(e.fecha) < 0).reverse()
+  // El encabezado habla del próximo evento real; la lista aplica búsqueda, filtros y orden
+  const proximosTodos = eventos.filter((e) => diasHasta(e.fecha) >= 0)
+  const visibles = filtrarEventos(eventos, filtros)
+  const proximos = ordenarEventos(visibles.filter((e) => diasHasta(e.fecha) >= 0), filtros.orden, false)
+  const pasados = ordenarEventos(visibles.filter((e) => diasHasta(e.fecha) < 0), filtros.orden, true)
+  const tipos = [...new Set(eventos.map((e) => e.tipo))].sort((a, b) => a.localeCompare(b, 'es'))
   const nombre = user.name.split(' ')[0]
 
   const lista = (items) => (
@@ -125,8 +132,8 @@ export default function Eventos() {
             <h1>Hola, {nombre}</h1>
             {estado === 'listo' && (
               <p>
-                {proximos.length > 0
-                  ? `Tu próximo evento es «${proximos[0].nombre}». ${textoRelativo(proximos[0].fecha)}.`
+                {proximosTodos.length > 0
+                  ? `Tu próximo evento es «${proximosTodos[0].nombre}». ${textoRelativo(proximosTodos[0].fecha)}.`
                   : eventos.length > 0
                     ? 'No tienes eventos por venir. Crea uno nuevo cuando lo necesites.'
                     : 'Aquí aparecerán tus eventos.'}
@@ -160,6 +167,21 @@ export default function Eventos() {
           </div>
         )}
 
+        {estado === 'listo' && eventos.length > 1 && (
+          <FiltrosEventos
+            valores={filtros} onCambio={setFiltros} tipos={tipos}
+            total={eventos.length} mostrados={visibles.length} onLimpiar={() => setFiltros(FILTROS_INICIALES)}
+          />
+        )}
+
+        {estado === 'listo' && eventos.length > 1 && visibles.length === 0 && (
+          <div className="vacio">
+            <h2>Ningún evento coincide</h2>
+            <p>Prueba con otra búsqueda o quita los filtros para ver todos tus eventos.</p>
+            <button type="button" className="btn btn--primario" onClick={() => setFiltros({ ...FILTROS_INICIALES, orden: filtros.orden })}>Limpiar filtros</button>
+          </div>
+        )}
+
         {estado === 'listo' && proximos.length > 0 && (
           <section aria-labelledby="t-proximos">
             <h2 id="t-proximos" className="panel__seccion">Próximos</h2>
@@ -176,7 +198,7 @@ export default function Eventos() {
 
       {editor && <EditorEvento evento={editor.evento} eventos={eventos} limite={limite} onCerrar={() => setEditor(null)} onGuardado={guardado} />}
       {porBorrar && <ConfirmarBorrado evento={porBorrar} onCancelar={() => setPorBorrar(null)} onConfirmar={eliminar} />}
-      {toast && <p className="aviso-toast" role="status">{toast}</p>}
+      <Aviso aviso={aviso} ocupado={ocupado} onDeshacer={deshacer} />
     </div>
   )
 }

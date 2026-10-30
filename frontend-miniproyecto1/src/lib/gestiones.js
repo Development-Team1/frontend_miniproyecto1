@@ -49,3 +49,36 @@ export async function posponerGestion(evento, tarea, opciones) {
   await guardarCambios(evento, tarea, opciones)
   return pasoFinal(evento, () => cambiarEstado(tarea, 'pospuesta'))
 }
+
+/*
+ * Deshacer: devuelve la gestión (y la fecha del evento) a como estaban antes de la acción. `eventoAntes` y `tareaAntes`
+ * son los objetos previos al cambio. Se parte del evento actual del servidor y se respeta el orden que exigen las reglas:
+ *   - si antes estaba «hecha», primero se marca hecha (no cuenta en la carga) y después se devuelve la fecha;
+ *   - en los demás casos primero se devuelve la fecha (el día original ya la admitía) y después el estado.
+ */
+export async function restaurarGestion(eventoAntes, tareaAntes) {
+  const actual = await traerEvento(eventoAntes.id)
+  const ahora = actual.tareas.find((t) => t.id === tareaAntes.id)
+  if (!ahora) throw new Error('La gestión ya no existe.')
+
+  const cambiaFecha = actual.fecha !== eventoAntes.fecha
+  const cambiaGestion =
+    ahora.plazo !== tareaAntes.plazo || Number(ahora.horas_estimadas) !== Number(tareaAntes.horas_estimadas)
+  const cambiaEstado = ahora.status !== tareaAntes.status
+
+  const devolverFecha = () =>
+    guardarCambios(actual, tareaAntes, {
+      plazo: tareaAntes.plazo,
+      horas: tareaAntes.horas_estimadas,
+      fechaEvento: cambiaFecha ? eventoAntes.fecha : undefined,
+    })
+
+  if (tareaAntes.status === 'hecha') {
+    if (cambiaEstado) await cambiarEstado(tareaAntes, 'hecha')
+    if (cambiaFecha || cambiaGestion) await devolverFecha()
+  } else {
+    if (cambiaFecha || cambiaGestion) await devolverFecha()
+    if (cambiaEstado) await cambiarEstado(tareaAntes, tareaAntes.status)
+  }
+  return traerEvento(eventoAntes.id)
+}

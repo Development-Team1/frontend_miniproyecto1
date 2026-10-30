@@ -13,6 +13,7 @@
   border-bottom: 1px solid var(--trazo);
 }
 .landing__acciones { display: flex; align-items: center; gap: 0.5rem; }
+.landing__acciones .btn { white-space: nowrap; }
 #como-funciona, #privacidad { scroll-margin-top: 6rem; }
 
 /* ---------- Hero ---------- */
@@ -114,9 +115,17 @@
   font-size: 0.82rem;
 }
 
+/* Barra del landing en móvil: el logo arriba y las acciones debajo, repartiéndose el ancho */
+@media (max-width: 560px) {
+  .landing__barra {  flex-direction: column; align-items: stretch; gap: 0.8rem; }
+  .landing__barra .logo { align-self: flex-start; }
+  .landing__acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: 0.5rem; }
+  .landing__acciones .btn { width: 100%; padding-inline: 0.6rem; white-space: nowrap; }
+  .landing__acciones .btn--texto { background: var(--pizarra); border-color: var(--trazo); }
+  .landing__acciones .btn--texto:hover { background: var(--trazo); }
+}
+
 @media (max-width: 480px) {
-  .landing__barra { flex-wrap: wrap; }
-  .landing__acciones { width: 100%; justify-content: flex-end; }
   .hilo__etiqueta { width: 9.6rem; padding: 0.55rem 0.8rem; }
   .hilo__etiqueta strong { font-size: 0.88rem; }
   .landing__pie-contenido { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem 1rem; }

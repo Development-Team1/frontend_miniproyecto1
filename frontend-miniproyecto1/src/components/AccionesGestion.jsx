@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react'
-import { analizarPosposicion, analizarReapertura, formatoNumero, textoProgreso, progresoDe } from '../lib/carga'
+import { analizarPosposicion, analizarReapertura, cargaSinGestion, formatoNumero, textoProgreso, progresoDe } from '../lib/carga'
 import { fechaCorta } from '../lib/fechas'
-import { marcarHecha, posponerGestion, reabrirGestion } from '../lib/gestiones'
+import { marcarHecha, posponerGestion, reabrirGestion, restaurarGestion } from '../lib/gestiones'
 
 const horasTxt = (n) => `${formatoNumero(n)}h`
 
@@ -78,13 +78,20 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
     [modo, evento, tarea, eventos, limite],
   )
 
+  // Horas ya planificadas en cada día sin contar esta gestión (para avisar de la carga antes de confirmar)
+  const cargaOtros = useMemo(
+    () => (modo === 'posponer' ? cargaSinGestion(eventos, tarea.id) : null),
+    [modo, eventos, tarea.id],
+  )
+
   const ejecutar = async (fn) => {
     setOcupado(true)
     setError('')
     try {
       const { evento: nuevo, mensaje } = await fn()
       setModo(null)
-      onActualizado(nuevo, mensaje)
+      // Cada acción se puede deshacer: se devuelve la gestión a como estaba antes (el aviso muestra el botón)
+      onActualizado(nuevo, mensaje, () => restaurarGestion(evento, tarea))
     } catch (err) {
       if (err.evento) {
         setModo(null)
@@ -172,6 +179,7 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
   const conflictoPosp = posp?.problema && posp.problema.tipo !== 'sin_fecha'
   const idFecha = `${uid}-fecha`
   const idAyuda = `${uid}-ayuda`
+  const idCarga = `${uid}-carga`
 
   return (
     <div className="acciones-gestion">
@@ -205,11 +213,16 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
               <input
                 id={idFecha} className="entrada" type="date" min={posp.min} value={fecha} disabled={ocupado}
                 onChange={(e) => setFecha(e.target.value)}
-                aria-invalid={conflictoPosp ? 'true' : undefined} aria-describedby={idAyuda}
+                aria-invalid={conflictoPosp ? 'true' : undefined} aria-describedby={`${idAyuda} ${idCarga}`}
               />
               <p id={idAyuda} className="campo__ayuda">
                 Plazo actual: {fechaCorta(tarea.plazo)} · Evento: {fechaCorta(evento.fecha)} · Límite diario: {horasTxt(limite)}
               </p>
+              {fecha && cargaOtros && (
+                <p id={idCarga} className="campo__ayuda">
+                  El {fechaCorta(fecha)} ya tiene {horasTxt(cargaOtros.get(fecha) || 0)} planificadas; con esta gestión serían {horasTxt((cargaOtros.get(fecha) || 0) + horas)} de {horasTxt(limite)}.
+                </p>
+              )}
             </div>
           )}
 

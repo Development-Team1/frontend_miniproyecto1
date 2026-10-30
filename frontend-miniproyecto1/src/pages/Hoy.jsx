@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import Link from '../components/Link'
 import AccionesGestion from '../components/AccionesGestion'
+import Aviso from '../components/Aviso'
+import CargaSemanal from '../components/CargaSemanal'
 import { api } from '../lib/api'
 import { LIMITE_POR_DEFECTO } from '../lib/carga'
 import { fechaCorta, fechaLarga, formatoHoras } from '../lib/fechas'
@@ -9,6 +11,7 @@ import {
   GRUPOS, REGLA_ORDEN, agruparGestiones, aplanarGestiones, hoyISO, marcaDe, resumenDe, textoPlazo,
 } from '../lib/hoy'
 import { useTitulo } from '../lib/router'
+import { useAviso } from '../lib/useAviso'
 import { MENSAJE_SERVIDOR_LENTO, useAvisoLento } from '../lib/useAvisoLento'
 
 const ESTADOS = [
@@ -25,7 +28,7 @@ export default function Hoy() {
   const [filtroEvento, setFiltroEvento] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
   const [limite, setLimite] = useState(LIMITE_POR_DEFECTO)
-  const [toast, setToast] = useState('')
+  const { aviso, avisar, deshacer, ocupado } = useAviso()
   const lento = useAvisoLento(estado === 'cargando')
   useTitulo('Hoy · Mini-proyecto 1')
 
@@ -49,16 +52,14 @@ export default function Hoy() {
     cargar()
   }, [cargar])
 
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(''), 6000)
-    return () => clearTimeout(t)
-  }, [toast])
-
   // Una gestión se marcó como hecha o se pospuso: se reemplaza el evento con lo que dice el servidor
-  const actualizado = (evento, mensaje) => {
-    setEventos((previos) => previos.map((e) => (e.id === evento.id ? evento : e)))
-    if (mensaje) setToast(mensaje)
+  const reemplazar = (evento) => setEventos((previos) => previos.map((e) => (e.id === evento.id ? evento : e)))
+  const actualizado = (evento, mensaje, revertir) => {
+    reemplazar(evento)
+    avisar(mensaje, revertir && (async () => {
+      reemplazar(await revertir())
+      return 'Cambio deshecho.'
+    }))
   }
 
   const gestiones = useMemo(() => aplanarGestiones(eventos), [eventos])
@@ -136,6 +137,8 @@ export default function Hoy() {
 
         {estado === 'listo' && gestiones.length > 0 && (
           <>
+            <CargaSemanal eventos={eventos} limite={limite} />
+
             <details className="regla" open>
               <summary>¿Cómo se ordena esto?</summary>
               <ol>
@@ -232,7 +235,7 @@ export default function Hoy() {
         )}
       </main>
 
-      {toast && <p className="aviso-toast" role="status">{toast}</p>}
+      <Aviso aviso={aviso} ocupado={ocupado} onDeshacer={deshacer} />
     </div>
   )
 }
