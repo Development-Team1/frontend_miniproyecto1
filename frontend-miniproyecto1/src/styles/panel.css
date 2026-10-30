@@ -7,7 +7,6 @@
   position: sticky; top: 0; z-index: 20;
 }
 .panel__usuario { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
-.panel__usuario > span { color: var(--niebla); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
 
 .panel__principal {
   display: flex; flex-direction: column; gap: 2.2rem;
@@ -122,8 +121,16 @@ dialog::backdrop { background: rgba(10, 13, 18, 0.7); }
 .gestion__fila { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 0.9rem; }
 .gestion__quitar { align-self: flex-start; color: var(--niebla); }
 
+@media (max-width: 480px) {
+  .modal__contenido { padding: 1.3rem; }
+  .cajon__cabecera { padding: 1.1rem 1.1rem 0.8rem; }
+  .cajon__cuerpo { padding-inline: 1.1rem; }
+  .cajon__pie { padding: 0.9rem 1.1rem 1.1rem; }
+  .cajon__botones, .modal__acciones { flex-wrap: wrap; }
+  .cajon__botones .btn, .modal__acciones .btn { flex: 1 1 9rem; }
+}
+
 @media (max-width: 640px) {
-  .panel__usuario > span { max-width: 6rem; }
   .evento { grid-template-columns: 3.2rem minmax(0, 1fr); gap: 0.8rem; }
   .evento__fecha { width: 3.2rem; height: 3.2rem; box-shadow: 0 0 0 5px var(--noche); }
   .evento__fecha b { font-size: 1.2rem; }
