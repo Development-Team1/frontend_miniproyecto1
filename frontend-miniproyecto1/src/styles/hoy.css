@@ -1,12 +1,47 @@
 /* ---------- Barra: navegación entre secciones ---------- */
-.panel__izq { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.2rem); min-width: 0; }
-.panel__nav { display: flex; gap: 0.3rem; }
+/* Escritorio (≥1100px): enlaces en línea. Por debajo: botón de menú y panel desplegable. */
+.panel__menu { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem 2rem; margin-left: clamp(1rem, 3vw, 2.2rem); }
+.panel__nav { display: flex; flex: none; gap: 0.3rem; }
+.panel__usuario .btn { flex: none; white-space: nowrap; }
 .panel__nav a {
-  padding: 0.5rem 0.95rem; font-weight: 600; color: var(--niebla); text-decoration: none;
+  display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.5rem 0.95rem; white-space: nowrap;
+  font-weight: 600; color: var(--niebla); text-decoration: none;
   border-radius: 14px 18px 14px 18px; transition: background-color 0.15s, color 0.15s;
 }
 .panel__nav a:hover { background: var(--pizarra); color: var(--hielo); }
 .panel__nav a[aria-current='page'] { background: var(--azul-hondo); color: var(--azul-claro); }
+
+.panel__cuenta { display: flex; flex-direction: column; min-width: 0; }
+.panel__nombre { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--niebla); }
+.panel__correo { display: none; }
+
+.panel__hamburguesa {
+  display: none; flex: none; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0;
+  color: var(--hielo); background: var(--pizarra); border: 1.5px solid var(--trazo); border-radius: var(--forma-boton);
+  cursor: pointer; transition: background-color 0.15s;
+}
+.panel__hamburguesa:hover { background: var(--trazo); }
+.panel__hamburguesa svg { width: 1.4rem; height: 1.4rem; }
+.panel__velo { display: none; }
+
+@media (max-width: 1099.98px) {
+  .panel__hamburguesa { display: inline-flex; }
+  .panel__velo { display: block; position: fixed; inset: 4.6rem 0 0; background: rgba(10, 13, 18, 0.65); }
+  .panel__menu {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1; margin: 0;
+    flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 1rem;
+    padding: 0.8rem clamp(1.1rem, 4vw, 2rem) 1.3rem;
+    max-height: calc(100dvh - 4.6rem); overflow-y: auto; overscroll-behavior: contain;
+    background: var(--grafito); border-bottom: 1px solid var(--trazo); box-shadow: 0 20px 30px rgba(0, 0, 0, 0.4);
+  }
+  .panel__menu--abierto { display: flex; animation: abrir 0.2s ease-out; }
+  .panel__nav { flex-direction: column; gap: 0.35rem; }
+  .panel__nav a { min-height: 2.9rem; padding: 0.7rem 1rem; font-size: 1.05rem; }
+  .panel__usuario { flex-direction: column; align-items: stretch; gap: 0.9rem; padding-top: 1rem; border-top: 1px solid var(--trazo); }
+  .panel__nombre { max-width: none; font-weight: 700; color: var(--hielo); }
+  .panel__correo { display: block; font-size: 0.9rem; color: var(--niebla); overflow-wrap: anywhere; }
+  .panel__usuario .btn { width: 100%; min-height: 2.9rem; }
+}
 
 /* ---------- Vista Hoy ---------- */
 .hoy__fecha::first-letter { text-transform: uppercase; }
@@ -66,11 +101,6 @@ select.entrada {
 .grupo--hoy .gh__marca b { font-size: 1.1rem; }
 
 @media (max-width: 640px) {
-  .panel__barra { flex-wrap: wrap; gap: 0.6rem 0.5rem; }
-  .panel__usuario .btn { padding-inline: 0.8rem; }
-  .panel__izq { display: contents; }
-  .panel__nav { order: 3; width: 100%; }
-  .panel__nav a { flex: 1; text-align: center; }
   .gh { grid-template-columns: 3.2rem minmax(0, 1fr); padding-right: 1rem; }
   .gh__marca { width: 3.2rem; height: 3.2rem; }
   .gh__horas { grid-column: 2; }
