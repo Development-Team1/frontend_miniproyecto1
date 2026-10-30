@@ -51,6 +51,7 @@ export function aplanarGestiones(eventos) {
       dias: diasHasta(t.plazo),
       estado: estadoDe(t.plazo),
       status: t.status,
+      nota: t.note ?? null,
       evento: { id: e.id, nombre: e.nombre, tipo: e.tipo },
     })),
   )

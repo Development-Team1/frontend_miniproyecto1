@@ -11,7 +11,8 @@ import { api } from './api'
 import { cuerpoEvento } from './carga'
 
 const traerEvento = (id) => api(`/events/${id}`)
-const cambiarEstado = (tarea, status) => api(`/tasks/${tarea.id}`, { method: 'PATCH', body: { status } })
+const parchear = (tarea, cambios) => api(`/tasks/${tarea.id}`, { method: 'PATCH', body: cambios })
+const cambiarEstado = (tarea, status) => parchear(tarea, { status })
 
 function guardarCambios(evento, tarea, { plazo, horas, fechaEvento }) {
   const cuerpo = cuerpoEvento(evento)
@@ -44,17 +45,18 @@ export async function reabrirGestion(evento, tarea, opciones = {}) {
   return pasoFinal(evento, () => cambiarEstado(tarea, 'pendiente'))
 }
 
-// opciones: { plazo, horas?, fechaEvento? }
+// opciones: { plazo, horas?, fechaEvento?, nota? }. `nota` solo se envía si cambió ('' la borra): el servidor la conserva si no llega.
 export async function posponerGestion(evento, tarea, opciones) {
   await guardarCambios(evento, tarea, opciones)
-  return pasoFinal(evento, () => cambiarEstado(tarea, 'pospuesta'))
+  const cambios = { status: 'pospuesta', ...(opciones.nota !== undefined ? { note: opciones.nota } : {}) }
+  return pasoFinal(evento, () => parchear(tarea, cambios))
 }
 
 /*
  * Deshacer: devuelve la gestión (y la fecha del evento) a como estaban antes de la acción. `eventoAntes` y `tareaAntes`
  * son los objetos previos al cambio. Se parte del evento actual del servidor y se respeta el orden que exigen las reglas:
  *   - si antes estaba «hecha», primero se marca hecha (no cuenta en la carga) y después se devuelve la fecha;
- *   - en los demás casos primero se devuelve la fecha (el día original ya la admitía) y después el estado.
+ *   - en los demás casos primero se devuelve la fecha (el día original ya la admitía) y después estado y nota.
  */
 export async function restaurarGestion(eventoAntes, tareaAntes) {
   const actual = await traerEvento(eventoAntes.id)
@@ -64,7 +66,10 @@ export async function restaurarGestion(eventoAntes, tareaAntes) {
   const cambiaFecha = actual.fecha !== eventoAntes.fecha
   const cambiaGestion =
     ahora.plazo !== tareaAntes.plazo || Number(ahora.horas_estimadas) !== Number(tareaAntes.horas_estimadas)
-  const cambiaEstado = ahora.status !== tareaAntes.status
+  const cambios = {}
+  if (ahora.status !== tareaAntes.status) cambios.status = tareaAntes.status
+  if ((ahora.note ?? '') !== (tareaAntes.note ?? '')) cambios.note = tareaAntes.note ?? null
+  const hayCambios = Object.keys(cambios).length > 0
 
   const devolverFecha = () =>
     guardarCambios(actual, tareaAntes, {
@@ -74,11 +79,11 @@ export async function restaurarGestion(eventoAntes, tareaAntes) {
     })
 
   if (tareaAntes.status === 'hecha') {
-    if (cambiaEstado) await cambiarEstado(tareaAntes, 'hecha')
+    if (hayCambios) await parchear(tareaAntes, cambios)
     if (cambiaFecha || cambiaGestion) await devolverFecha()
   } else {
     if (cambiaFecha || cambiaGestion) await devolverFecha()
-    if (cambiaEstado) await cambiarEstado(tareaAntes, tareaAntes.status)
+    if (hayCambios) await parchear(tareaAntes, cambios)
   }
   return traerEvento(eventoAntes.id)
 }

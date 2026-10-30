@@ -219,3 +219,13 @@
 .filtros-eventos__pie p { margin: 0; font-size: 0.95rem; color: var(--niebla); }
 input[type='search'].entrada { appearance: none; }
 input[type='search'].entrada::-webkit-search-cancel-button { filter: invert(0.7); cursor: pointer; }
+
+
+/* ---------- Nota de una gestión pospuesta ---------- */
+.nota-gestion {
+  margin: 0.2rem 0 0; padding: 0.5rem 0.8rem; font-size: 0.92rem; line-height: 1.45; color: var(--hielo);
+  background: rgba(242, 197, 114, 0.1); border-left: 3px solid var(--ambar); border-radius: 4px 12px 12px 4px;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.nota-gestion__titulo { font-weight: 700; color: var(--ambar); }
+textarea.entrada { resize: vertical; min-height: 4.5rem; font: inherit; line-height: 1.45; }

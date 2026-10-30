@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import { fechaCorta, fechaLarga } from '../lib/fechas'
 import { hoyISO } from '../lib/hoy'
 import { LIMITE_POR_DEFECTO, analizarCarga, formatoNumero, horasPorDia, mensajeResuelto } from '../lib/carga'
+import NotaGestion from './NotaGestion'
 import { IconoCheck } from './Iconos'
 
 const TIPOS = ['Boda', 'Cumpleaños', 'Corporativo', 'Social', 'Otro']
@@ -12,6 +13,7 @@ const nuevaGestion = (t = {}) => ({
   uid: ++contador,
   id: t.id ?? null, // identifica la gestión en el servidor: así conserva su estado aunque se renombre
   hecha: t.status === 'hecha', // una gestión hecha no suma horas al día
+  nota: t.note ?? null, // nota al posponer: solo lectura aquí, el servidor la conserva al guardar
   nombre: t.nombre ?? '',
   plazo: t.plazo ?? '',
   plazoOriginal: t.plazo ?? null, // en un evento existente, su fecha previa sigue siendo válida aunque ya haya pasado
@@ -34,6 +36,7 @@ function Confirmacion({ c }) {
     </div>
   )
 }
+
 // Fecha del evento anterior a hoy, con opciones para resolverla (mismo patrón que el aviso de sobrecarga)
 function AvisoFechaPasada({ id, hoy, sugerida, onUsar, onElegirDia }) {
   return (
@@ -53,6 +56,7 @@ function AvisoFechaPasada({ id, hoy, sugerida, onUsar, onElegirDia }) {
     </div>
   )
 }
+
 // Aviso de sobrecarga diaria (US-07) con opciones para resolverla (Escenario 3)
 function AvisoConflicto({ aviso, onSugerir, onElegirDia, onReducir }) {
   const { conflicto: c, sinEstaGestion, soloExcede, sugerencia, reduccion } = aviso
@@ -166,7 +170,7 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
     setErrores((p) => ({ ...p, [`${campo}-${uid}`]: undefined }))
   }
 
-   const hoy = hoyISO()
+  const hoy = hoyISO()
   // Fecha pasada (en un evento existente, su fecha previa sigue siendo válida) y la fecha válida más cercana:
   // hoy, o el último plazo de las gestiones si ya vence después de hoy
   const fechaPasada = Boolean(datos.fecha) && datos.fecha < hoy && datos.fecha !== evento?.fecha
@@ -296,7 +300,6 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
               <ErrorCampo id="err-fecha" texto={errores.fecha} />
             )}
             {fechaCorregida && !fechaPasada && <Confirmacion c={fechaCorregida} />}
-            <ErrorCampo id="err-fecha" texto={errores.fecha} />
           </div>
 
           <section className="gestiones" aria-labelledby="gestiones-titulo">
@@ -313,6 +316,7 @@ export default function EditorEvento({ evento, eventos = [], limite = LIMITE_POR
             {gestiones.map((g, i) => (
               <div className="gestion" key={g.uid} role="group" aria-label={`Gestión ${i + 1}`}>
                 {g.hecha && <p className="campo__ayuda">Esta gestión ya está hecha, por eso no suma horas al día.</p>}
+                <NotaGestion nota={g.nota} />
                 <div className="campo">
                   <label htmlFor={`g-nombre-${g.uid}`}>Qué hay que hacer</label>
                   <input
