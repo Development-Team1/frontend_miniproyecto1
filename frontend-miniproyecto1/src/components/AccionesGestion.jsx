@@ -62,6 +62,7 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
   const uid = useId()
   const [modo, setModo] = useState(null) // null | 'posponer' | 'reabrir'
   const [fecha, setFecha] = useState('')
+  const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [error, setError] = useState('')
 
@@ -111,8 +112,14 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
 
   const hacerPosponer = ({ plazo, horasNuevas, fechaEvento }) =>
     ejecutar(async () => {
-      const nuevo = await posponerGestion(evento, tarea, { plazo, horas: horasNuevas, fechaEvento })
+      // La nota solo se envía si cambió respecto a la que ya tenía la gestión
+      const textoNota = nota.trim()
+      const notaCambiada = textoNota !== (tarea.note ?? '')
+      const nuevo = await posponerGestion(evento, tarea, {
+        plazo, horas: horasNuevas, fechaEvento, nota: notaCambiada ? textoNota : undefined,
+      })
       const partes = [`«${nombre}» se pospuso del ${fechaCorta(tarea.plazo)} al ${fechaCorta(plazo)}.`]
+      if (notaCambiada && textoNota) partes.push('Se guardó tu nota.')
       if (horasNuevas) partes.push(`Sus horas pasaron de ${horasTxt(horas)} a ${horasTxt(horasNuevas)}.`)
       if (fechaEvento) partes.push(`El evento ahora es el ${fechaCorta(fechaEvento)}.`)
       return { evento: nuevo, mensaje: partes.join(' ') }
@@ -131,6 +138,7 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
   const abrirPosponer = () => {
     if (modo === 'posponer') return setModo(null)
     setError('')
+    setNota(tarea.note ?? '')
     const a = analizarPosposicion({ evento, tarea, eventos, limite, fecha: '' })
     setFecha(a.soluciones.alternativa?.dia ?? (a.problema?.tipo === 'sin_ventana' ? '' : a.min))
     setModo('posponer')
@@ -180,6 +188,7 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
   const idFecha = `${uid}-fecha`
   const idAyuda = `${uid}-ayuda`
   const idCarga = `${uid}-carga`
+  const idNota = `${uid}-nota`
 
   return (
     <div className="acciones-gestion">
@@ -225,6 +234,18 @@ export default function AccionesGestion({ evento, tarea, eventos, limite, onActu
               )}
             </div>
           )}
+
+          <div className="campo">
+            <label htmlFor={idNota}>Nota (opcional)</label>
+            <textarea
+              id={idNota} className="entrada" rows={3} maxLength={500} value={nota} disabled={ocupado}
+              placeholder="Ej.: el proveedor responde hasta el jueves" aria-describedby={`${idNota}-ayuda`}
+              onChange={(e) => setNota(e.target.value)}
+            />
+            <p id={`${idNota}-ayuda`} className="campo__ayuda">
+              Explica por qué la pospones. Se verá en todas las vistas donde aparezca esta gestión · {nota.length}/500
+            </p>
+          </div>
 
           {conflictoPosp && (
             <Conflicto

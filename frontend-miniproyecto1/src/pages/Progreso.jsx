@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import Link from '../components/Link'
 import AccionesGestion from '../components/AccionesGestion'
+import NotaGestion from '../components/NotaGestion'
 import Aviso from '../components/Aviso'
 import { api } from '../lib/api'
 import { LIMITE_POR_DEFECTO } from '../lib/carga'
@@ -131,6 +132,7 @@ function TarjetaEvento({ evento, r, hoy, abierta, onAlternar, eventos, limite, o
                   <span className="gestion-dato">Plazo: {fechaCorta(g.plazo)}</span>
                   <span className="gestion-dato">{formatoHoras(g.horas_estimadas)}</span>
                 </div>
+                <NotaGestion nota={g.note} />
                 <AccionesGestion evento={evento} tarea={g} eventos={eventos} limite={limite} onActualizado={onActualizado} />
               </li>
             )

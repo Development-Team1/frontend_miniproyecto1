@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BarraApp from '../components/BarraApp'
 import Link from '../components/Link'
 import AccionesGestion from '../components/AccionesGestion'
+import NotaGestion from '../components/NotaGestion'
 import Aviso from '../components/Aviso'
 import CargaSemanal from '../components/CargaSemanal'
 import { api } from '../lib/api'
@@ -215,6 +216,7 @@ export default function Hoy() {
                                 <p>Evento: {it.evento.nombre}</p>
                                 <p className="gh__plazo">{textoPlazo(it, fechaCorta)}</p>
                                 {it.status === 'pospuesta' && <span className="etiqueta etiqueta--pospuesta">Pospuesta</span>}
+                                <NotaGestion nota={it.nota} />
                               </div>
                               <span className="gh__horas">{formatoHoras(it.horas)}</span>
                               {evento && tarea && (

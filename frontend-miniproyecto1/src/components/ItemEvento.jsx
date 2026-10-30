@@ -1,4 +1,5 @@
 import AccionesGestion from './AccionesGestion'
+import NotaGestion from './NotaGestion'
 import { progresoDe } from '../lib/carga'
 import { diaDelMes, diasHasta, fechaCorta, fechaLarga, formatoHoras, mesCorto, textoRelativo } from '../lib/fechas'
 
@@ -80,6 +81,7 @@ export default function ItemEvento({ evento, eventos, limite, abierto, onAlterna
                       <span className="gestion-dato">Plazo: {fechaCorta(g.plazo)}</span>
                       <span className="gestion-dato">{formatoHoras(g.horas_estimadas)}</span>
                     </div>
+                    <NotaGestion nota={g.note} />
                     <AccionesGestion evento={evento} tarea={g} eventos={eventos} limite={limite} onActualizado={onActualizado} />
                   </li>
                 ))}
